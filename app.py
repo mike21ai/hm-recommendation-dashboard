@@ -6,25 +6,16 @@ import plotly.express as px
 import warnings
 warnings.filterwarnings('ignore')
 
-# ============================================
-# PAGE CONFIG
-# ============================================
 st.set_page_config(
     page_title="H&M Recommendation System",
     page_icon="🛍️",
     layout="wide"
 )
 
-# ============================================
-# HEADER
-# ============================================
 st.markdown("# H&M Recommendation System")
 st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
 st.markdown("---")
 
-# ============================================
-# LOAD DATA
-# ============================================
 @st.cache_data
 def load_data():
     metrics = {
@@ -57,9 +48,6 @@ def load_data():
 
 metrics, model_df, graph_stats = load_data()
 
-# ============================================
-# TABS
-# ============================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Executive Summary",
     "🎯 Model Performance",
@@ -68,26 +56,15 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "💡 Recommendations"
 ])
 
-# ========== TAB 1: EXECUTIVE SUMMARY ==========
 with tab1:
     st.header("Executive Summary")
     
     col1, col2 = st.columns(2)
     with col1:
-        st.info("""
-        **Challenge**: H&M operates 7M customer transactions across 51K products.
-        
-        **Solution**: Implement hybrid recommendation engine combining collaborative 
-        filtering and content-based approaches.
-        """)
+        st.info("**Challenge**: H&M operates 7M customer transactions across 51K products. **Solution**: Implement hybrid recommendation engine combining collaborative filtering and content-based approaches.")
     
     with col2:
-        st.success("""
-        **Impact**:
-        - 4.60% product coverage
-        - 6M+ daily recommendations
-        - Improved customer retention
-        """)
+        st.success("**Impact**: 4.60% product coverage | 6M+ daily recommendations | Improved customer retention")
     
     st.subheader("Dataset Overview")
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -107,45 +84,28 @@ with tab1:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.write("""
-        **ALS Collaborative Filtering**
-        - RMSE: 0.718
-        - Coverage: 1.51%
-        """)
+        st.write("**ALS Collaborative Filtering**")
+        st.write("RMSE: 0.718 | Coverage: 1.51%")
     
     with col2:
-        st.write("""
-        **Content-Based Filtering**
-        - RMSE: 0.65
-        - Coverage: 3.09%
-        """)
+        st.write("**Content-Based Filtering**")
+        st.write("RMSE: 0.65 | Coverage: 3.09%")
     
     with col3:
-        st.write("""
-        **Hybrid (RECOMMENDED)**
-        - RMSE: 0.635
-        - Coverage: 4.60%
-        """)
+        st.write("**Hybrid (RECOMMENDED)**")
+        st.write("RMSE: 0.635 | Coverage: 4.60%")
     
     st.success("✅ Hybrid model balances accuracy with product diversity")
     
     st.subheader("Implementation Roadmap")
-    st.markdown("""
-    1. Deploy Hybrid Model
-    2. A/B Testing (10% user base)
-    3. Monitor Performance
-    4. Optimize Over Time
-    5. Scale to Production
-    """)
+    st.write("1. Deploy Hybrid Model | 2. A/B Testing | 3. Monitor Performance | 4. Optimize Over Time | 5. Scale to Production")
 
-# ========== TAB 2: MODEL PERFORMANCE ==========
 with tab2:
     st.header("Model Performance Analysis")
     
     st.subheader("Performance Metrics Comparison")
     st.dataframe(model_df, use_container_width=True, hide_index=True)
     
-    # RMSE Chart
     st.subheader("RMSE Comparison (Lower is Better)")
     rmse_sorted = model_df[['Model', 'RMSE']].sort_values('RMSE')
     
@@ -161,7 +121,6 @@ with tab2:
     fig_rmse.update_layout(height=400, showlegend=False)
     st.plotly_chart(fig_rmse, use_container_width=True)
     
-    # Coverage Chart
     st.subheader("Coverage Comparison (Higher is Better)")
     coverage_sorted = model_df[['Model', 'Coverage']].sort_values('Coverage', ascending=False)
     
@@ -176,7 +135,6 @@ with tab2:
     fig_coverage.update_layout(height=400)
     st.plotly_chart(fig_coverage, use_container_width=True)
     
-    # Products Chart
     st.subheader("Product Diversity")
     products_sorted = model_df[['Model', 'Products']].sort_values('Products', ascending=False)
     
@@ -191,7 +149,6 @@ with tab2:
     fig_products.update_layout(height=400)
     st.plotly_chart(fig_products, use_container_width=True)
     
-    # Recommendations Volume
     st.subheader("Recommendation Volume (Scalability)")
     recs_sorted = model_df[['Model', 'Recommendations']].sort_values('Recommendations', ascending=False)
     
@@ -206,15 +163,8 @@ with tab2:
     fig_recs.update_layout(height=400)
     st.plotly_chart(fig_recs, use_container_width=True)
     
-    st.info("""
-    **Key Insights**:
-    - Popularity Baseline: RMSE 0.4848, limited diversity
-    - ALS: Good for similar customers, RMSE 0.718
-    - Hybrid: Best balance, RMSE 0.635
-    - Hybrid scales to 6M+ daily recommendations
-    """)
+    st.info("**Key Insights**: Popularity (RMSE 0.4848, limited diversity) | ALS (RMSE 0.718, good for similar customers) | Hybrid (RMSE 0.635, best balance) | Scales to 6M+ daily recommendations")
 
-# ========== TAB 3: DATA ANALYSIS ==========
 with tab3:
     st.header("Data Analysis")
     
@@ -240,20 +190,11 @@ with tab3:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write(f"""
-        **Top Customer**: {graph_stats['top_customer']:,} purchases
-        
-        Power user with high purchase frequency.
-        """)
+        st.write(f"**Top Customer**: {graph_stats['top_customer']:,} purchases - Power user with high purchase frequency")
     
     with col2:
-        st.write(f"""
-        **Top Product**: {graph_stats['top_product']:,} customers
-        
-        Most popular product in the network.
-        """)
+        st.write(f"**Top Product**: {graph_stats['top_product']:,} customers - Most popular product in the network")
     
-    # Distribution Chart
     st.subheader("Purchase Distribution")
     np.random.seed(42)
     customer_purchases = np.random.exponential(scale=2, size=1000)
@@ -270,11 +211,9 @@ with tab3:
     st.plotly_chart(fig_dist, use_container_width=True)
     st.caption("Mean: 2 products per customer | Power-law distribution (typical for e-commerce)")
     
-    # Top Products
     st.subheader("Top 10 Most Popular Products")
     top_products = pd.DataFrame({
-        'Product': ['P866731', 'P866732', 'P866733', 'P866734', 'P866735',
-                    'P866736', 'P866737', 'P866738', 'P866739', 'P866740'],
+        'Product': ['P866731', 'P866732', 'P866733', 'P866734', 'P866735', 'P866736', 'P866737', 'P866738', 'P866739', 'P866740'],
         'Customers': [108, 103, 100, 99, 98, 96, 95, 93, 91, 88]
     }).sort_values('Customers', ascending=True)
     
@@ -289,11 +228,9 @@ with tab3:
     fig_top_prod.update_layout(height=400, yaxis_title="")
     st.plotly_chart(fig_top_prod, use_container_width=True)
     
-    # Top Customers
     st.subheader("Top 10 Most Connected Customers")
     top_customers = pd.DataFrame({
-        'Customer': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005',
-                     'C000006', 'C000007', 'C000008', 'C000009', 'C000010'],
+        'Customer': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005', 'C000006', 'C000007', 'C000008', 'C000009', 'C000010'],
         'Products': [407, 389, 378, 368, 346, 363, 366, 372, 407, 378]
     }).sort_values('Products', ascending=True)
     
@@ -308,14 +245,10 @@ with tab3:
     fig_top_cust.update_layout(height=400, yaxis_title="")
     st.plotly_chart(fig_top_cust, use_container_width=True)
 
-# ========== TAB 4: GRAPH ANALYTICS ==========
 with tab4:
     st.header("Network Graph Analysis")
     
-    st.info("""
-    The customer-product network enables recommendation discovery through 
-    collaborative filtering and graph path analysis.
-    """)
+    st.info("The customer-product network enables recommendation discovery through collaborative filtering and graph path analysis.")
     
     st.subheader("Network Statistics")
     col1, col2, col3, col4 = st.columns(4)
@@ -331,20 +264,17 @@ with tab4:
     
     st.caption("Sparse network typical for e-commerce bipartite structure")
     
-    # Network Visualization
     st.subheader("Customer-Product Network Visualization")
     
     np.random.seed(42)
     n_customers = 20
     n_products = 30
     
-    # Positions
     customer_x = [-1] * n_customers
     customer_y = np.linspace(0, 1, n_customers)
     product_x = [1] * n_products
     product_y = np.linspace(0, 1, n_products)
     
-    # Create edges
     edge_x = []
     edge_y = []
     
@@ -354,10 +284,8 @@ with tab4:
             edge_x.extend([customer_x[i], product_x[j], None])
             edge_y.extend([customer_y[i], product_y[j], None])
     
-    # Create figure
     fig_net = go.Figure()
     
-    # Edges
     fig_net.add_trace(go.Scatter(
         x=edge_x, y=edge_y,
         mode='lines',
@@ -366,7 +294,6 @@ with tab4:
         showlegend=False
     ))
     
-    # Customer nodes
     fig_net.add_trace(go.Scatter(
         x=customer_x, y=customer_y,
         mode='markers',
@@ -377,7 +304,6 @@ with tab4:
         showlegend=True
     ))
     
-    # Product nodes
     fig_net.add_trace(go.Scatter(
         x=product_x, y=product_y,
         mode='markers',
@@ -399,43 +325,22 @@ with tab4:
     
     st.plotly_chart(fig_net, use_container_width=True)
     
-    st.caption("""
-    **Visualization**:
-    - Red circles = Customers
-    - Teal squares = Products
-    - Lines = Purchase relationships
-    """)
+    st.caption("Red circles = Customers | Teal squares = Products | Lines = Purchase relationships")
     
     st.subheader("Network Insights")
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write("""
-        **Network Structure**
-        
-        Bipartite graph with customers on left, products on right.
-        Similarity inferred through shared products.
-        """)
+        st.write("**Network Structure**: Bipartite graph with customers on left, products on right. Similarity inferred through shared products.")
     
     with col2:
-        st.write("""
-        **For Recommendations**
-        
-        - Find similar customers
-        - Identify product clusters
-        - Detect customer communities
-        """)
+        st.write("**For Recommendations**: Find similar customers | Identify product clusters | Detect customer communities")
 
-# ========== TAB 5: RECOMMENDATIONS ==========
 with tab5:
     st.header("Personalized Recommendations")
     
-    st.info("""
-    View recommendations for sample customers based on purchase history
-    and hybrid recommendation model.
-    """)
+    st.info("View recommendations for sample customers based on purchase history and hybrid recommendation model.")
     
-    # Sample data
     samples = {
         'C000001': {
             'purchases': ['P866731', 'P866732', 'P866733'],
@@ -467,7 +372,6 @@ with tab5:
     if selected:
         data = samples[selected]
         
-        # Purchase History
         st.subheader(f"Purchase History - {selected}")
         history_df = pd.DataFrame({
             'Product ID': data['purchases'],
@@ -476,7 +380,6 @@ with tab5:
         st.dataframe(history_df, use_container_width=True, hide_index=True)
         st.caption(f"Total: {len(data['purchases'])} products")
         
-        # Recommendations
         st.subheader("Recommended Products")
         col1, col2, col3 = st.columns(3)
         
@@ -497,31 +400,14 @@ with tab5:
             st.write("Combined approach")
             for i, p in enumerate(data['hybrid'], 1):
                 if i == 1:
-                    st.success(f"**★ {i}. {p}**")
+                    st.success(f"Star {i}. {p}")
                 else:
                     st.caption(f"{i}. {p}")
         
-        st.info("""
-        **Usage**:
-        - Show Hybrid recommendations first
-        - Track engagement metrics
-        - Validate with actual purchases
-        """)
+        st.info("Show Hybrid recommendations first | Track engagement metrics | Validate with actual purchases")
     
     st.subheader("Recommendation Strategy")
-    st.markdown("""
-    **Cold-Start Users** → Popularity Baseline
-    
-    **Warm Users** → Hybrid Model
-    
-    **Power Users** → Hybrid with exploration
-    """)
+    st.write("Cold-Start Users: Popularity Baseline | Warm Users: Hybrid Model | Power Users: Hybrid with exploration")
 
-# ========== FOOTER ==========
 st.markdown("---")
-st.markdown(
-    "<div style='text-align:center; color:#999; font-size:0.9em;'>"
-    "H&M Recommendation System | Hybrid Collaborative + Content Analytics"
-    "</div>",
-    unsafe_allow_html=True
-)
+st.markdown("<div style='text-align:center; color:#999; font-size:0.9em;'>H&M Recommendation System | Hybrid Collaborative + Content Analytics</div>", unsafe_allow_html=True)
