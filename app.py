@@ -1,467 +1,407 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.express as px
+import json
 import plotly.graph_objects as go
+import plotly.express as px
+from pathlib import Path
+from datetime import datetime
+import os
 
-st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", layout="wide")
-st.markdown("# Sistem Rekomendasi H&M")
-st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
-st.markdown("---")
+# -----------------------------------------------------------------------------
+# PAGE CONFIG
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="H&M Recommendation System Dashboard",
+    page_icon="🛍️",
+    layout="wide"
+)
+
+# -----------------------------------------------------------------------------
+# DATA LOADING (FROM data/ FOLDER)
+# -----------------------------------------------------------------------------
 
 @st.cache_data
 def load_data():
-    product_names = {
-        'P866731': 'Kaos Casual Biru',
-        'P866732': 'Celana Denim Premium',
-        'P866733': 'Jaket Outdoor',
-        'P751471': 'Sweater Rajut Warna Cream',
-        'P841383': 'Tas Tangan Kulit Coklat',
-        'P599580': 'Sepatu Sneaker Putih',
-        'P706016': 'Cardigan Rajut',
-        'P610776': 'Sepatu Formal',
-        'P759871': 'Dress Wanita Elegan'
-    }
+    data_dir = Path("data")
+
+    top_customers = pd.read_csv(data_dir / "top_customers.csv")
+    top_products = pd.read_csv(data_dir / "top_products.csv")
+    distribution = pd.read_csv(data_dir / "customer_distribution.csv")
+    edges = pd.read_csv(data_dir / "bipartite_edges.csv")
+    nodes = pd.read_csv(data_dir / "bipartite_nodes.csv")
+
+    with open(data_dir / "network_stats.json", "r") as f:
+        network_stats = json.load(f)
+
+    with open(data_dir / "model_performance.json", "r") as f:
+        model_performance = json.load(f)
+
     return {
-        'total_interactions': 7005582,
-        'unique_customers': 742431,
-        'unique_products': 51232,
-        'train_set': 5604521,
-        'test_set': 1401061,
-    }, pd.DataFrame({
-        'Model': ['Popularity', 'ALS', 'Content', 'Hybrid', 'Random'],
-        'RMSE': [0.4848, 0.718, 0.65, 0.6350, 2.0348],
-        'Coverage': [37.42, 1.51, 3.09, 4.60, 37.42],
-        'Products': [39498, 1598, 3256, 4854, 39498],
-        'Recommendations': [1401061, 6050980, 12799, 6063779, 1401061]
-    }), {
-        'total_nodes': 27523,
-        'total_edges': 150673,
-        'num_customers': 3000,
-        'num_products': 24523,
-        'density': 0.000398,
-        'top_customer': 407,
-        'top_product': 104
-    }, product_names
+        "top_customers": top_customers,
+        "top_products": top_products,
+        "distribution": distribution,
+        "edges": edges,
+        "nodes": nodes,
+        "network_stats": network_stats,
+        "model_performance": model_performance,
+    }
 
-metrics, model_df, graph_stats, product_names = load_data()
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ringkasan", "🎯 Performa", "📈 Data", "🔗 Jaringan", "💡 Rekomendasi"])
+try:
+    data = load_data()
+except FileNotFoundError as e:
+    st.error(
+        f"""
+    ❌ Data file not found: `{e.filename}`
 
-with tab1:
-    st.header("Executive Summary")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info("**Tantangan**: H&M mengelola 7 juta transaksi pelanggan di seluruh 51.232 produk. Sistem rekomendasi hybrid menggabungkan pendekatan collaborative filtering (melihat kesamaan perilaku antar pelanggan) dan content-based (melihat kesamaan karakteristik produk) untuk memberikan rekomendasi yang akurat dan beragam.")
-    with col2:
-        st.success("**Dampak Solusi**: Mencakup 4,60% dari total produk yang tersedia | Mampu menghasilkan 6 juta rekomendasi per hari | Peningkatan retensi pelanggan melalui pengalaman belanja yang dipersonalisasi")
-    
-    st.subheader("Dataset Overview")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Transaksi", f"{metrics['total_interactions']:,}")
-    c2.metric("Pelanggan", f"{metrics['unique_customers']:,}")
-    c3.metric("Produk", f"{metrics['unique_products']:,}")
-    c4.metric("Data Latih", f"{metrics['train_set']:,}")
-    c5.metric("Data Uji", f"{metrics['test_set']:,}")
-    
-    st.subheader("Model Comparison")
-    c1, c2, c3 = st.columns(3)
-    c1.write("**ALS (Collaborative Filtering)**\n\nRMSE: 0.718\n\nKeakuratan sedang, terbatas pada produk dalam data historis")
-    c2.write("**Content-Based (Berbasis Konten)**\n\nRMSE: 0.65\n\nKeakuratan baik, dapat merekomendasikan produk baru")
-    c3.write("**Hybrid (Kombinasi) ✓**\n\nRMSE: 0.635\n\nKeakuratan terbaik dengan keseimbangan akurasi dan keberagaman")
-    
-    st.success("Model hybrid memberikan hasil terbaik dengan menyeimbangkan akurasi prediksi dan keberagaman rekomendasi produk.")
-    
-    st.subheader("Roadmap Implementasi Sistem")
-    st.markdown("""
-    **1. Deploy (Peluncuran)**
-    - Menerapkan model hybrid ke sistem live H&M dan integrasi dengan platform e-commerce
-    
-    **2. A/B Testing (Uji Perbandingan)**
-    - Membandingkan performa model hybrid dengan model lama pada segmen pelanggan berbeda
-    - Mengukur click-through rate, conversion rate, dan customer satisfaction
-    
-    **3. Monitor (Pemantauan)**
-    - Memantau kinerja model secara real-time untuk mendeteksi anomali atau penurunan performa
-    - Menganalisis feedback pelanggan dan engagement metrics
-    
-    **4. Optimize (Optimalisasi)**
-    - Melakukan fine-tuning parameter model berdasarkan data monitoring
-    - Menyesuaikan bobot antara collaborative filtering dan content-based sesuai hasil
-    
-    **5. Scale (Penskalaan)**
-    - Memperluas implementasi ke semua region dan segmen pelanggan H&M
-    - Meningkatkan kapasitas infrastruktur untuk volume transaksi yang lebih besar
-    """)
+    Pastikan semua file ini ada di folder `data/`:
+    - top_customers.csv
+    - top_products.csv
+    - network_stats.json
+    - customer_distribution.csv
+    - bipartite_edges.csv
+    - bipartite_nodes.csv
+    - model_performance.json
+    """
+    )
+    st.stop()
 
-with tab2:
-    st.header("Model Performance Analysis")
-    
-    st.markdown("**Penjelasan Model Rekomendasi:**")
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.write("**Popularity**\n\nMerekomendasikan produk populer global. Cara kerja: Ranking produk berdasarkan jumlah pembeli.")
-    with col2:
-        st.write("**ALS**\n\nCollaborative filtering dengan matrix factorization. Cara kerja: Mencari pelanggan serupa berdasarkan preferensi tersembunyi.")
-    with col3:
-        st.write("**Content**\n\nContent-based filtering. Cara kerja: Merekomendasikan produk dengan fitur serupa dengan yang sudah dibeli.")
-    with col4:
-        st.write("**Hybrid ✓**\n\nKombinasi ALS + Content. Cara kerja: Menggabungkan kekuatan kedua metode untuk hasil optimal.")
-    with col5:
-        st.write("**Random**\n\nBaseline untuk perbandingan. Cara kerja: Rekomendasi acak tanpa logika.")
-    
-    st.dataframe(model_df, use_container_width=True, hide_index=True)
-    
-    st.subheader("RMSE - Semakin Rendah Semakin Baik")
-    st.write("RMSE mengukur rata-rata kesalahan prediksi rating. Model dengan RMSE lebih rendah memiliki prediksi yang lebih akurat.")
-    rmse_df = model_df[['Model', 'RMSE']].sort_values('RMSE').reset_index(drop=True)
-    colors = ['#2ecc71' if model == 'Hybrid' else '#3498db' for model in rmse_df['Model']]
-    fig1 = px.bar(rmse_df, y='Model', x='RMSE', orientation='h', color='RMSE', color_continuous_scale='RdYlGn_r', title="Perbandingan Error Rate Model")
-    fig1.update_traces(marker_color=colors)
-    fig1.update_layout(height=350, showlegend=False)
-    st.plotly_chart(fig1, use_container_width=True)
-    st.caption("✓ Hybrid model memiliki RMSE terendah (0.635) = akurasi prediksi terbaik")
-    
-    st.subheader("Coverage - Semakin Tinggi Semakin Baik")
-    st.write("Coverage menunjukkan persentase produk yang dapat direkomendasikan oleh model. Coverage tinggi berarti model tidak hanya merekomendasikan produk populer saja.")
-    cov_df = model_df[['Model', 'Coverage']].sort_values('Coverage', ascending=False).reset_index(drop=True)
-    fig2 = px.bar(cov_df, x='Model', y='Coverage', color='Coverage', color_continuous_scale='Greens', title="Cakupan Produk yang Dapat Direkomendasikan (%)")
-    fig2.update_layout(height=350)
-    st.plotly_chart(fig2, use_container_width=True)
-    st.caption("✓ Hybrid model mencakup 4,60% dari semua produk = keseimbangan antara akurasi dan keberagaman")
-    
-    st.subheader("Product Diversity - Semakin Tinggi Semakin Baik")
-    st.write("Menunjukkan berapa banyak produk berbeda yang direkomendasikan model kepada pelanggan. Jumlah lebih tinggi berarti keberagaman rekomendasi.")
-    prod_df = model_df[['Model', 'Products']].sort_values('Products', ascending=False).reset_index(drop=True)
-    fig3 = px.bar(prod_df, x='Model', y='Products', color='Products', color_continuous_scale='Blues', title="Jumlah Produk Unik yang Direkomendasikan")
-    fig3.update_layout(height=350)
-    st.plotly_chart(fig3, use_container_width=True)
-    st.caption("✓ Hybrid model merekomendasikan 4.854 produk unik = keberagaman yang baik dibanding ALS (1.598)")
-    
-    st.subheader("Daily Recommendation Capacity - Semakin Tinggi Semakin Baik")
-    st.write("Kapasitas model untuk menghasilkan rekomendasi per hari. Volume tinggi menunjukkan skalabilitas model untuk bisnis besar.")
-    rec_df = model_df[['Model', 'Recommendations']].sort_values('Recommendations', ascending=False).reset_index(drop=True)
-    fig4 = px.bar(rec_df, x='Model', y='Recommendations', color='Recommendations', color_continuous_scale='Purples', title="Kapasitas Rekomendasi Harian")
-    fig4.update_layout(height=350)
-    st.plotly_chart(fig4, use_container_width=True)
-    st.caption("✓ Hybrid model menghasilkan 6 juta rekomendasi per hari = skalabel untuk operasi H&M yang besar")
+# Sidebar info
+st.sidebar.title("Dataset Info")
+st.sidebar.success("✅ Data loaded from `data/` folder")
 
-with tab3:
-    st.header("Data Analysis")
-    
-    st.subheader("Network Properties")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Node", f"{graph_stats['total_nodes']:,}")
-    c2.metric("Total Edge (Koneksi)", f"{graph_stats['total_edges']:,}")
-    c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
-    
-    st.subheader("Network Composition")
-    c1, c2 = st.columns(2)
-    c1.metric("Pelanggan", f"{graph_stats['num_customers']:,}")
-    c2.metric("Produk", f"{graph_stats['num_products']:,}")
-    
-    st.subheader("Perilaku Pembelian Pelanggan")
-    st.write("**Metrik ini menunjukkan pola pembelian dalam jaringan pelanggan-produk H&M:**")
-    c1, c2 = st.columns(2)
-    c1.write(f"**Pelanggan Teratas**: {graph_stats['top_customer']:,} pembelian\n\nMenunjukkan pelanggan dengan frekuensi pembelian tertinggi (power user). Insight: Pelanggan ini adalah high-value customer yang penting untuk retensi.")
-    c2.write(f"**Produk Teratas**: {graph_stats['top_product']:,} pelanggan\n\nMenunjukkan produk yang dibeli oleh jumlah pelanggan terbanyak (populer). Insight: Produk ini adalah best-seller dan harus selalu tersedia.")
-    
-    st.subheader("Distribusi Pembelian Produk per Pelanggan")
-    st.write("Grafik ini menunjukkan pola distribusi jumlah produk yang dibeli oleh setiap pelanggan. Mayoritas pelanggan membeli 1-3 produk (power-law distribution) yang umum di e-commerce, sementara beberapa pelanggan (power users) membeli sangat banyak. Insight: Sebagian besar pelanggan adalah casual buyers, ada peluang untuk meningkatkan frequency melalui rekomendasi.")
-    np.random.seed(42)
-    purchases = np.random.exponential(scale=2, size=1000)
-    purchases = np.clip(purchases, 1, 150)
-    fig_dist = px.histogram(x=purchases, nbins=30, title="Distribusi Jumlah Produk per Pelanggan", labels={'x': 'Jumlah Produk', 'y': 'Jumlah Pelanggan'}, color_discrete_sequence=['#1f77b4'])
-    fig_dist.update_layout(height=350)
-    st.plotly_chart(fig_dist, use_container_width=True)
-    st.caption("Mean: 2 produk per pelanggan | Power-law distribution (umum di e-commerce)")
-    
-    st.subheader("Top 10 Most Popular Products")
-    top_p = pd.DataFrame({
-        'Product Code': ['P866731', 'P866732', 'P866733', 'P866734', 'P866735', 'P866736', 'P866737', 'P866738', 'P866739', 'P866740'],
-        'Product Name': ['Kaos Casual Biru', 'Celana Denim Premium', 'Jaket Outdoor', 'Hoodie Unisex', 'Celana Casual', 'Kaos Band', 'Kemeja Casual', 'Shorts Summer', 'Tank Top', 'Polo Shirt'],
-        'Customers': [108, 103, 100, 99, 98, 96, 95, 93, 91, 88]
-    }).sort_values('Customers', ascending=True).reset_index(drop=True)
-    fig_top = px.bar(top_p, y='Product Name', x='Customers', orientation='h', color='Customers', color_continuous_scale='Blues', title="Produk Paling Banyak Dibeli")
-    fig_top.update_layout(height=400, xaxis_title="Jumlah Pelanggan", yaxis_title="")
-    st.plotly_chart(fig_top, use_container_width=True)
-    
-    st.subheader("Top 10 Most Active Customers")
-    top_c = pd.DataFrame({
-        'Customer': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005', 'C000006', 'C000007', 'C000008', 'C000009', 'C000010'],
-        'Products': [407, 389, 378, 368, 346, 363, 366, 372, 407, 378]
-    }).sort_values('Products', ascending=True).reset_index(drop=True)
-    fig_cust = px.bar(top_c, y='Customer', x='Products', orientation='h', color='Products', color_continuous_scale='Oranges', title="Pelanggan dengan Pembelian Terbanyak")
-    fig_cust.update_layout(height=400, xaxis_title="Jumlah Produk", yaxis_title="")
-    st.plotly_chart(fig_cust, use_container_width=True)
+net = data["network_stats"]
+st.sidebar.write(f"**Nodes**: {net['total_nodes']:,}")
+st.sidebar.write(f"**Edges**: {net['total_edges']:,}")
+st.sidebar.write(f"**Customers (graph)**: {net['num_customers']:,}")
+st.sidebar.write(f"**Products (graph)**: {net['num_products']:,}")
 
-with tab4:
-    st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik merah di kiri adalah pelanggan, setiap kotak teal di kanan adalah produk, dan garis menunjukkan pembelian. **Hover pada node untuk melihat koneksi, gunakan dropdown untuk highlight koneksi spesifik!**")
-    
-    st.subheader("Network Statistics")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Node", f"{graph_stats['total_nodes']:,}")
-    c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
-    c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
-    c4.metric("Tipe", "Bipartite")
-    st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite")
-    
-    st.subheader("Customer-Product Network Visualization")
-    np.random.seed(42)
-    n_cust = 20
-    n_prod = 30
-    
-    cust_x = [-1] * n_cust
-    cust_y = np.linspace(0, 1, n_cust)
-    prod_x = [1] * n_prod
-    prod_y = np.linspace(0, 1, n_prod)
-    
-    # Buat dictionary untuk menyimpan edge connections
-    cust_connections = {i: [] for i in range(n_cust)}
-    prod_connections = {i: [] for i in range(n_prod)}
-    all_edges = []
-    
-    for i in range(n_cust):
-        for _ in range(np.random.randint(3, 8)):
-            j = np.random.randint(0, n_prod)
-            all_edges.append((i, j))
-            cust_connections[i].append(j)
-            prod_connections[j].append(i)
-    
-    fig_net = go.Figure()
-    
-    # Tambahkan base edges (warna default, transparan)
-    edge_x = []
-    edge_y = []
-    for i, j in all_edges:
-        edge_x.extend([cust_x[i], prod_x[j], None])
-        edge_y.extend([cust_y[i], prod_y[j], None])
-    
-    fig_net.add_trace(go.Scatter(
-        x=edge_x, y=edge_y,
-        mode='lines',
-        line=dict(width=0.5, color='rgba(255,255,255,0.2)'),
-        hoverinfo='skip',
-        showlegend=False,
-        name='edges_base'
-    ))
-    
-    # Tambahkan highlight edges untuk setiap customer
-    for cust_id in range(n_cust):
-        highlight_x = []
-        highlight_y = []
-        for prod_id in cust_connections[cust_id]:
-            highlight_x.extend([cust_x[cust_id], prod_x[prod_id], None])
-            highlight_y.extend([cust_y[cust_id], prod_y[prod_id], None])
-        
-        fig_net.add_trace(go.Scatter(
-            x=highlight_x, y=highlight_y,
-            mode='lines',
-            line=dict(width=2.5, color='rgba(255, 107, 107, 0.9)'),
-            hoverinfo='skip',
-            showlegend=False,
-            visible=False,
-            name=f'edges_cust_{cust_id}'
-        ))
-    
-    # Tambahkan highlight edges untuk setiap product
-    for prod_id in range(n_prod):
-        highlight_x = []
-        highlight_y = []
-        for cust_id in prod_connections[prod_id]:
-            highlight_x.extend([cust_x[cust_id], prod_x[prod_id], None])
-            highlight_y.extend([cust_y[cust_id], prod_y[prod_id], None])
-        
-        fig_net.add_trace(go.Scatter(
-            x=highlight_x, y=highlight_y,
-            mode='lines',
-            line=dict(width=2.5, color='rgba(78, 205, 196, 0.9)'),
-            hoverinfo='skip',
-            showlegend=False,
-            visible=False,
-            name=f'edges_prod_{prod_id}'
-        ))
-    
-    # Tambahkan customer nodes
-    fig_net.add_trace(go.Scatter(
-        x=cust_x, y=cust_y,
-        mode='markers',
-        marker=dict(size=14, color='#FF6B6B', line=dict(width=2, color='white')),
-        text=[f'Customer C{i}<br>Produk dibeli: {len(cust_connections[i])}' for i in range(n_cust)],
-        hovertemplate='<b>%{text}</b><extra></extra>',
-        name='Pelanggan',
-        showlegend=True
-    ))
-    
-    # Tambahkan product nodes
-    fig_net.add_trace(go.Scatter(
-        x=prod_x, y=prod_y,
-        mode='markers',
-        marker=dict(size=12, color='#4ECDC4', symbol='square', line=dict(width=2, color='white')),
-        text=[f'Product P{i}<br>Pembeli: {len(prod_connections[i])}' for i in range(n_prod)],
-        hovertemplate='<b>%{text}</b><extra></extra>',
-        name='Produk',
-        showlegend=True
-    ))
-    
-    # Buat buttons untuk interaktivitas
-    buttons = []
-    
-    # Button untuk reset (tampilkan semua edges default)
-    visibility_reset = [True] + [False] * (n_cust + n_prod) + [True, True]
-    buttons.append(dict(
-        label="🔄 Reset View",
-        method="update",
-        args=[{"visible": visibility_reset}]
-    ))
-    
-    # Buttons untuk setiap customer
-    for cust_id in range(n_cust):
-        visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
-        visibility[1 + cust_id] = True
-        buttons.append(dict(
-            label=f"👤 Customer C{cust_id} ({len(cust_connections[cust_id])} produk)",
-            method="update",
-            args=[{"visible": visibility}]
-        ))
-    
-    # Buttons untuk setiap product
-    for prod_id in range(n_prod):
-        visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
-        visibility[1 + n_cust + prod_id] = True
-        buttons.append(dict(
-            label=f"📦 Product P{prod_id} ({len(prod_connections[prod_id])} pembeli)",
-            method="update",
-            args=[{"visible": visibility}]
-        ))
-    
-    fig_net.update_layout(
-        title="Jaringan Bipartite Pelanggan-Produk (Interactive Highlighting)",
-        showlegend=True,
-        hovermode='closest',
-        height=600,
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        plot_bgcolor='rgba(20,20,20,1)',
-        updatemenus=[
-            dict(
-                type="dropdown",
-                direction="down",
-                x=0.01,
-                y=0.99,
-                showactive=True,
-                buttons=buttons,
-                bgcolor='rgba(255,255,255,0.1)',
-                bordercolor='rgba(255,255,255,0.3)',
-                font=dict(size=11)
+stats_file = Path("data/network_stats.json")
+if stats_file.exists():
+    ts = datetime.fromtimestamp(os.path.getmtime(stats_file))
+    st.sidebar.write(f"**Last updated**: {ts.strftime('%Y-%m-%d %H:%M')}")
+
+# -----------------------------------------------------------------------------
+# HEADER
+# -----------------------------------------------------------------------------
+st.title("🛍️ H&M E‑Commerce Recommendation System")
+st.markdown(
+    "Big Data Project · Collaborative Filtering · Content-Based · Graph Analytics"
+)
+st.divider()
+
+# -----------------------------------------------------------------------------
+# NETWORK OVERVIEW
+# -----------------------------------------------------------------------------
+st.header("📊 Network Overview")
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Total Nodes", f"{net['total_nodes']:,}", "Customers + Products")
+with col2:
+    st.metric("Total Edges", f"{net['total_edges']:,}", "Purchase links")
+with col3:
+    st.metric("Density", f"{net['density']:.6f}")
+with col4:
+    st.metric("Clustering Coefficient", f"{net['clustering_coefficient']:.4f}")
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# MODEL PERFORMANCE
+# -----------------------------------------------------------------------------
+st.header("🤖 Model Performance Comparison")
+
+mp = data["model_performance"]
+
+col1, col2 = st.columns(2)
+
+with col1:
+    # RMSE
+    models_rmse = []
+    rmse_vals = []
+    for m, v in mp.items():
+        if v["RMSE"] != "N/A":
+            models_rmse.append(m)
+            rmse_vals.append(v["RMSE"])
+
+    fig_rmse = go.Figure(
+        data=[
+            go.Bar(
+                x=models_rmse,
+                y=rmse_vals,
+                text=[f"{v:.4f}" for v in rmse_vals],
+                textposition="auto",
+                marker_color=["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
             )
         ]
     )
-    
-    st.plotly_chart(fig_net, use_container_width=True)
-    st.caption("🎯 Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | **Gunakan dropdown di kiri atas untuk highlight koneksi spesifik**")
-    
-    st.subheader("Cara Menggunakan Graph Analytics")
-    st.markdown("""
-    **1. Menemukan Pelanggan Serupa**: Pelanggan yang terhubung ke produk yang sama memiliki preferensi serupa → basis untuk collaborative filtering
-    
-    **2. Mengidentifikasi Kluster Produk**: Produk yang sering dibeli bersama oleh pelanggan sama membentuk kluster → produk bundling opportunities
-    
-    **3. Deteksi Komunitas**: Menemukan kelompok pelanggan dan produk yang saling terkait erat → segmentasi target marketing
-    
-    **4. Rekomendasi Berbasis Jaringan**: Jika pelanggan A mirip dengan B, dan B membeli produk X, maka X bisa direkomendasikan ke A
-    """)
+    fig_rmse.update_layout(
+        title="RMSE Comparison (Lower is Better)",
+        xaxis_title="Model",
+        yaxis_title="RMSE",
+        height=400,
+        showlegend=False,
+    )
+    st.plotly_chart(fig_rmse, use_container_width=True)
 
-with tab5:
-    st.header("Personalized Recommendations")
-    st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan riwayat pembelian mereka dan model hybrid recommendation.")
-    
-    samples = {
-        'C000001': {
-            'purchases': [
-                {'product': 'P866731', 'name': 'Kaos Casual Biru', 'date': '2025-11-15', 'price': 49000},
-                {'product': 'P866732', 'name': 'Celana Denim Premium', 'date': '2025-12-01', 'price': 89000},
-                {'product': 'P866733', 'name': 'Jaket Outdoor', 'date': '2026-01-10', 'price': 199000}
-            ],
-            'als': [('P751471', 'Sweater Rajut Warna Cream'), ('P841383', 'Tas Tangan Kulit Coklat'), ('P599580', 'Sepatu Sneaker Putih')],
-            'content': [('P706016', 'Cardigan Rajut'), ('P610776', 'Sepatu Formal'), ('P599580', 'Sepatu Sneaker Putih')],
-            'hybrid': [('P751471', 'Sweater Rajut Warna Cream'), ('P706016', 'Cardigan Rajut'), ('P841383', 'Tas Tangan Kulit Coklat')]
-        },
-        'C000019': {
-            'purchases': [
-                {'product': 'P759871', 'name': 'Dress Wanita Elegan', 'date': '2025-10-20', 'price': 159000},
-                {'product': 'P610776', 'name': 'Sepatu Formal', 'date': '2025-12-15', 'price': 299000}
-            ],
-            'als': [('P841383', 'Tas Tangan Kulit Coklat'), ('P706016', 'Cardigan Rajut'), ('P751471', 'Sweater Rajut Warna Cream')],
-            'content': [('P599580', 'Sepatu Sneaker Putih'), ('P610776', 'Sepatu Formal'), ('P706016', 'Cardigan Rajut')],
-            'hybrid': [('P841383', 'Tas Tangan Kulit Coklat'), ('P599580', 'Sepatu Sneaker Putih'), ('P706016', 'Cardigan Rajut')]
-        },
-        'C000045': {
-            'purchases': [
-                {'product': 'P706016', 'name': 'Cardigan Rajut', 'date': '2025-09-05', 'price': 129000},
-                {'product': 'P841383', 'name': 'Tas Tangan Kulit', 'date': '2026-01-05', 'price': 399000}
-            ],
-            'als': [('P599580', 'Sepatu Sneaker Putih'), ('P751471', 'Sweater Rajut Warna Cream'), ('P610776', 'Sepatu Formal')],
-            'content': [('P706016', 'Cardigan Rajut'), ('P841383', 'Tas Tangan Kulit Coklat'), ('P759871', 'Dress Wanita Elegan')],
-            'hybrid': [('P599580', 'Sepatu Sneaker Putih'), ('P706016', 'Cardigan Rajut'), ('P751471', 'Sweater Rajut Warna Cream')]
-        }
-    }
-    
-    st.subheader("Select Customer")
-    selected = st.selectbox("Pilih pelanggan untuk melihat rekomendasinya:", list(samples.keys()), format_func=lambda x: f"{x} (Example)")
-    
-    if selected:
-        data = samples[selected]
-        
-        st.subheader(f"Purchase History - {selected}")
-        hist_df = pd.DataFrame(data['purchases'])
-        st.dataframe(hist_df[['product', 'name', 'date', 'price']], use_container_width=True, hide_index=True)
-        st.caption(f"Total: {len(data['purchases'])} produk | Total pembelian: Rp {sum([p['price'] for p in data['purchases']]):,}")
-        
-        st.subheader("Product Recommendations by Method")
-        c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.write("**Collaborative Filtering**")
-            st.write("*Berdasarkan: Pelanggan Serupa*\n\nMenemukan pelanggan lain dengan preferensi serupa dan merekomendasikan produk yang mereka beli")
-            for i, (code, name) in enumerate(data['als'], 1):
-                st.caption(f"{i}. {name} ({code})")
-        
-        with c2:
-            st.write("**Content-Based**")
-            st.write("*Berdasarkan: Fitur Produk*\n\nMerekomendasikan produk dengan fitur/karakteristik serupa dengan yang sudah dibeli")
-            for i, (code, name) in enumerate(data['content'], 1):
-                st.caption(f"{i}. {name} ({code})")
-        
-        with c3:
-            st.write("**Hybrid (RECOMMENDED) ✓**")
-            st.write("*Berdasarkan: Kombinasi Kedua Metode*\n\nMenggabungkan keuntungan kedua metode untuk hasil optimal")
-            for i, (code, name) in enumerate(data['hybrid'], 1):
-                if i == 1:
-                    st.success(f"⭐ Top Recommendation: {name} ({code})")
-                else:
-                    st.caption(f"{i}. {name} ({code})")
-        
-        st.info("💡 **Insight**: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik antara akurasi dan keberagaman produk yang direkomendasikan.")
-    
-    st.subheader("Recommendation Strategy by Customer Segment")
-    st.markdown("""
-    **Cold-Start Users (Pelanggan Baru - Tanpa Riwayat Pembelian)**
-    - Gunakan: Model Popularity (produk populer umum)
-    - Alasan: Tidak ada data historis untuk collaborative filtering dan content-based
-    - Strategi: Tunjukkan best-sellers, produk trending, kategori populer
-    
-    **Warm Users (Pelanggan Aktif - Dengan Riwayat Pembelian)**
-    - Gunakan: Model Hybrid (kombinasi collaborative + content-based)
-    - Alasan: Data historis cukup untuk memberikan rekomendasi akurat dan beragam
-    - Strategi: Personalisasi berdasarkan preferensi individual dan patterns pelanggan serupa
-    
-    **Power Users (Pelanggan Setia - Pembelian Sangat Banyak)**
-    - Gunakan: Model Hybrid dengan tambahan exploration (mencoba produk baru)
-    - Alasan: Mereka sudah familiar dengan produk standar, perlu diversifikasi untuk fresh recommendations
-    - Strategi: Rekomendasi niche, produk eksklusif, pre-order produk baru
-    """)
+with col2:
+    # Coverage
+    models_cov = list(mp.keys())
+    cov_vals = [mp[m]["Coverage"] for m in models_cov]
 
+    fig_cov = go.Figure(
+        data=[
+            go.Bar(
+                x=models_cov,
+                y=cov_vals,
+                text=[f"{v:.2f}%" for v in cov_vals],
+                textposition="auto",
+                marker_color=["#F38181", "#FCEA7E", "#95E1D3", "#AA96DA", "#FCBAD3"],
+            )
+        ]
+    )
+    fig_cov.update_layout(
+        title="Product Coverage (%)",
+        xaxis_title="Model",
+        yaxis_title="Coverage %",
+        height=400,
+        showlegend=False,
+    )
+    st.plotly_chart(fig_cov, use_container_width=True)
+
+st.subheader("📋 Detailed Metrics")
+perf_df = pd.DataFrame(mp).T.reset_index().rename(columns={"index": "Model"})
+st.dataframe(perf_df, use_container_width=True, hide_index=True)
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# TOP CUSTOMERS & PRODUCTS
+# -----------------------------------------------------------------------------
+st.header("🏆 Top Customers & Products")
+
+tc = data["top_customers"].copy()
+tp = data["top_products"].copy()
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Top 10 Customers (by degree)")
+    tc["Customer_short"] = tc["Customer"].str[:16] + "..."
+    fig_tc = px.bar(
+        tc,
+        x="Degree",
+        y="Customer_short",
+        orientation="h",
+        color="Degree",
+        color_continuous_scale="Blues",
+        labels={"Degree": "Products Purchased", "Customer_short": "Customer"},
+        title="Most Connected Customers",
+    )
+    fig_tc.update_layout(
+        yaxis={"categoryorder": "total ascending"}, height=450, showlegend=False
+    )
+    st.plotly_chart(fig_tc, use_container_width=True)
+    st.expander("Show raw table").dataframe(tc, use_container_width=True)
+
+with col2:
+    st.subheader("Top 10 Products (by degree)")
+    fig_tp = px.bar(
+        tp,
+        x="Degree",
+        y="Product",
+        orientation="h",
+        color="Degree",
+        color_continuous_scale="Oranges",
+        labels={"Degree": "Customers", "Product": "Product"},
+        title="Most Popular Products",
+    )
+    fig_tp.update_layout(
+        yaxis={"categoryorder": "total ascending"}, height=450, showlegend=False
+    )
+    st.plotly_chart(fig_tp, use_container_width=True)
+    st.expander("Show raw table").dataframe(tp, use_container_width=True)
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# CUSTOMER PURCHASE DISTRIBUTION
+# -----------------------------------------------------------------------------
+st.header("📈 Customer Purchase Distribution")
+
+dist = data["distribution"]
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    fig_dist = px.histogram(
+        dist,
+        x="purchases",
+        nbins=50,
+        color_discrete_sequence=["#667eea"],
+        title="Histogram of Customer Purchases",
+        labels={"purchases": "Number of Products", "count": "Number of Customers"},
+    )
+    fig_dist.update_layout(height=450, showlegend=False)
+    st.plotly_chart(fig_dist, use_container_width=True)
+
+with col2:
+    st.subheader("Summary Stats")
+    st.metric("Mean", f"{dist['purchases'].mean():.2f}")
+    st.metric("Median", f"{dist['purchases'].median():.0f}")
+    st.metric("Max", f"{dist['purchases'].max():.0f}")
+    st.metric("Std Dev", f"{dist['purchases'].std():.2f}")
+    st.metric("Customers (sample)", f"{len(dist):,}")
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# BIPARTITE GRAPH
+# -----------------------------------------------------------------------------
+st.header("🕸️ Customer–Product Network (Sample)")
+
+st.info(
+    """
+**Bipartite graph sample**
+
+- 🔵 Blue nodes = Customers  
+- 🟠 Orange nodes = Products  
+- Node size ∝ degree (number of connections)  
+- Data: 30 top customers & 6,000+ connected products (8,753 edges)  
+"""
+)
+
+nodes_df = data["nodes"]
+edges_df = data["edges"]
+
+
+def create_bipartite_graph(nodes_df, edges_df):
+    customers = nodes_df[nodes_df["type"] == "customer"].copy()
+    products = nodes_df[nodes_df["type"] == "product"].copy()
+
+    # Simple 2-layer layout: customers left (x=0), products right (x=2)
+    pos = {}
+    cust_spacing = 100 / max(len(customers), 1)
+    for i, (_, row) in enumerate(customers.iterrows()):
+        pos[row["id"]] = (0, i * cust_spacing)
+
+    prod_spacing = 100 / max(len(products), 1)
+    for i, (_, row) in enumerate(products.iterrows()):
+        pos[row["id"]] = (2, i * prod_spacing)
+
+    # Edges
+    edge_x, edge_y = [], []
+    for _, e in edges_df.iterrows():
+        if e["source"] in pos and e["target"] in pos:
+            x0, y0 = pos[e["source"]]
+            x1, y1 = pos[e["target"]]
+            edge_x += [x0, x1, None]
+            edge_y += [y0, y1, None]
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        mode="lines",
+        line=dict(color="rgba(120,120,120,0.3)", width=0.4),
+        hoverinfo="none",
+        showlegend=False,
+    )
+
+    # Customer nodes
+    cust_x = [pos[id][0] for id in customers["id"]]
+    cust_y = [pos[id][1] for id in customers["id"]]
+    cust_sizes = [min(d / 3 + 8, 30) for d in customers["degree"]]
+
+    cust_trace = go.Scatter(
+        x=cust_x,
+        y=cust_y,
+        mode="markers",
+        name="Customers",
+        hoverinfo="text",
+        text=[
+            f"Customer: {row['label']}<br>Degree: {row['degree']}"
+            for _, row in customers.iterrows()
+        ],
+        marker=dict(
+            size=cust_sizes,
+            color="#4299E1",
+            line=dict(width=1, color="white"),
+            opacity=0.9,
+        ),
+    )
+
+    # Product nodes
+    prod_x = [pos[id][0] for id in products["id"]]
+    prod_y = [pos[id][1] for id in products["id"]]
+    prod_sizes = [min(d / 1.5 + 5, 20) for d in products["degree"]]
+
+    prod_trace = go.Scatter(
+        x=prod_x,
+        y=prod_y,
+        mode="markers",
+        name="Products",
+        hoverinfo="text",
+        text=[
+            f"Product: {row['label']}<br>Degree: {row['degree']}"
+            for _, row in products.iterrows()
+        ],
+        marker=dict(
+            size=prod_sizes,
+            color="#F56565",
+            line=dict(width=1, color="white"),
+            opacity=0.8,
+        ),
+    )
+
+    fig = go.Figure(
+        data=[edge_trace, cust_trace, prod_trace],
+        layout=go.Layout(
+            title=dict(
+                text="Customer–Product Bipartite Network (Top Customers Sample)",
+                x=0.5,
+                xanchor="center",
+            ),
+            height=800,
+            showlegend=True,
+            hovermode="closest",
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            legend=dict(orientation="h", x=0.5, y=1.02, xanchor="center"),
+        ),
+    )
+    return fig
+
+
+with st.spinner("Rendering network graph..."):
+    fig_graph = create_bipartite_graph(nodes_df, edges_df)
+    st.plotly_chart(fig_graph, use_container_width=True)
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Nodes in Sample Graph", f"{len(nodes_df):,}")
+with col2:
+    st.metric("Edges in Sample Graph", f"{len(edges_df):,}")
+with col3:
+    n_cust = len(nodes_df[nodes_df["type"] == "customer"])
+    n_prod = len(nodes_df[nodes_df["type"] == "product"])
+    st.metric("Customers : Products", f"{n_cust} : {n_prod}")
+
+st.divider()
+
+# -----------------------------------------------------------------------------
+# FOOTER
+# -----------------------------------------------------------------------------
 st.markdown("---")
-st.markdown("<center style='color:#999; font-size:0.9em;'>H&M Recommendation System | Hybrid Collaborative + Content Analytics</center>", unsafe_allow_html=True)
+st.markdown(
+    """
+<div style='text-align: center'>
+    <p><strong>H&M Big Data Recommendation System Dashboard</strong></p>
+    <p>Collaborative Filtering · Content-Based · Graph Analytics</p>
+    <p>Data: Kaggle H&M Dataset · 7M+ interactions</p>
+</div>
+""",
+    unsafe_allow_html=True,
+)
