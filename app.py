@@ -60,16 +60,46 @@ def load_data():
 # Load REAL data
 data = load_data()
 
-# Extract graph stats - SAFE conversion
+# ============================================================================
+# SAFE CONVERSION FUNCTION
+# ============================================================================
+
+def safe_int(value, default=0):
+    """Safely convert value to int"""
+    try:
+        if isinstance(value, int):
+            return value
+        elif isinstance(value, float):
+            return int(value)
+        elif isinstance(value, str):
+            return int(value)
+        else:
+            return int(value)
+    except:
+        return default
+
+def safe_float(value, default=0.0):
+    """Safely convert value to float"""
+    try:
+        if isinstance(value, (int, float)):
+            return float(value)
+        elif isinstance(value, str):
+            return float(value)
+        else:
+            return float(value)
+    except:
+        return default
+
+# Extract graph stats - ULTRA SAFE
 network_stats_raw = data['network_stats']
 graph_stats = {
-    'total_nodes': int(network_stats_raw.get('total_nodes', 27542)),
-    'total_edges': int(network_stats_raw.get('total_edges', 150680)),
-    'num_customers': int(network_stats_raw.get('num_customers', 3000)),
-    'num_products': int(network_stats_raw.get('num_products', 24542)),
-    'density': float(network_stats_raw.get('density', 0.000397)),
-    'top_customer': int(network_stats_raw.get('top_customer', 407)),
-    'top_product': int(network_stats_raw.get('top_product', 102))
+    'total_nodes': safe_int(network_stats_raw.get('total_nodes', 27542), 27542),
+    'total_edges': safe_int(network_stats_raw.get('total_edges', 150680), 150680),
+    'num_customers': safe_int(network_stats_raw.get('num_customers', 3000), 3000),
+    'num_products': safe_int(network_stats_raw.get('num_products', 24542), 24542),
+    'density': safe_float(network_stats_raw.get('density', 0.000397), 0.000397),
+    'top_customer': safe_int(network_stats_raw.get('top_customer', 407), 407),
+    'top_product': safe_int(network_stats_raw.get('top_product', 102), 102)
 }
 
 # Extract model performance - SAFE
@@ -82,15 +112,9 @@ for model_name, metrics_dict in model_perf.items():
     if isinstance(rmse_val, str) and rmse_val == 'N/A':
         rmse_float = np.nan
     else:
-        try:
-            rmse_float = float(rmse_val)
-        except:
-            rmse_float = np.nan
+        rmse_float = safe_float(rmse_val, np.nan)
     
-    try:
-        coverage_float = float(coverage_val)
-    except:
-        coverage_float = 0.0
+    coverage_float = safe_float(coverage_val, 0.0)
     
     model_df.append({
         'Model': model_name,
