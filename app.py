@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", layout="wide")
 
-# White Theme Configuration
+# White Theme Configuration with Text Color Fix
 st.markdown("""
 <style>
     .stApp {
@@ -14,12 +14,22 @@ st.markdown("""
     }
     [data-testid="stAppViewContainer"] {
         background-color: #ffffff;
+        color: #1f2937;
     }
     [data-testid="stHeader"] {
         background-color: #ffffff;
     }
     [data-testid="stToolbar"] {
         background-color: #ffffff;
+    }
+    body {
+        color: #1f2937;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #1f2937;
+    }
+    p {
+        color: #1f2937;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -142,7 +152,7 @@ with tab2:
         showlegend=False,
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig1, use_container_width=True)
     st.caption("✓ Hybrid model memiliki RMSE terendah (0.635) = akurasi prediksi terbaik")
@@ -155,7 +165,7 @@ with tab2:
         height=350,
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig2, use_container_width=True)
     st.caption("✓ Hybrid model mencakup 4,60% dari semua produk = keseimbangan antara akurasi dan keberagaman")
@@ -168,7 +178,7 @@ with tab2:
         height=350,
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig3, use_container_width=True)
     st.caption("✓ Hybrid model merekomendasikan 4.854 produk unik = keberagaman yang baik dibanding ALS (1.598)")
@@ -181,7 +191,7 @@ with tab2:
         height=350,
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig4, use_container_width=True)
     st.caption("✓ Hybrid model menghasilkan 6 juta rekomendasi per hari = skalabel untuk operasi H&M yang besar")
@@ -216,7 +226,7 @@ with tab3:
         height=350,
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig_dist, use_container_width=True)
     st.caption("Mean: 2 produk per pelanggan | Power-law distribution (umum di e-commerce)")
@@ -234,7 +244,7 @@ with tab3:
         yaxis_title="",
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig_top, use_container_width=True)
     
@@ -250,7 +260,7 @@ with tab3:
         yaxis_title="",
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937')
+        font=dict(color='#1f2937', size=12)
     )
     st.plotly_chart(fig_cust, use_container_width=True)
 
@@ -266,7 +276,7 @@ with tab4:
     c4.metric("Tipe", "Bipartite")
     st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite. Node = entitas (pelanggan/produk), Edge = hubungan pembelian")
     
-    st.subheader("Customer-Product Bipartite Network (Node Size = Connection Degree)")
+    st.subheader("Customer-Product Bipartite Network")
     
     np.random.seed(42)
     n_cust = 15
@@ -291,50 +301,49 @@ with tab4:
             cust_degrees[i] += 1
             prod_degrees[j] += 1
     
-    cust_sizes = [8 + d*1.5 for d in cust_degrees]
-    prod_sizes = [6 + d*1.2 for d in prod_degrees]
+    cust_sizes = [10 + d*2 for d in cust_degrees]
+    prod_sizes = [8 + d*1.5 for d in prod_degrees]
     
     fig_net = go.Figure()
     
-    fig_net.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color='rgba(0,0,0,0.1)'), hoverinfo='none', showlegend=False))
+    fig_net.add_trace(go.Scatter(
+        x=edge_x, y=edge_y, mode='lines',
+        line=dict(width=0.8, color='rgba(0,0,0,0.12)'),
+        hoverinfo='none',
+        showlegend=False
+    ))
     
     fig_net.add_trace(go.Scatter(
-        x=cust_x, y=cust_y, mode='markers+text',
+        x=cust_x, y=cust_y, mode='markers',
         marker=dict(size=cust_sizes, color='#EF4444', line=dict(width=2, color='#DC2626')),
-        text=[f'C{i}' for i in range(n_cust)],
-        textposition='middle center',
-        textfont=dict(size=8, color='white', family='Arial Black'),
-        hovertemplate='<b>Customer C%{text}</b><br>Products Bought: %{marker.size:.0f}<extra></extra>',
+        hovertemplate='<b>Customer</b><br>Purchases: %{marker.size:.0f}<extra></extra>',
         name='👥 Customers',
         showlegend=True
     ))
     
     fig_net.add_trace(go.Scatter(
-        x=prod_x, y=prod_y, mode='markers+text',
+        x=prod_x, y=prod_y, mode='markers',
         marker=dict(size=prod_sizes, color='#0EA5E9', symbol='square', line=dict(width=2, color='#0284C7')),
-        text=[f'P{i}' for i in range(n_prod)],
-        textposition='middle center',
-        textfont=dict(size=7, color='white', family='Arial Black'),
-        hovertemplate='<b>Product P%{text}</b><br>Buyers: %{marker.size:.0f}<extra></extra>',
+        hovertemplate='<b>Product</b><br>Buyers: %{marker.size:.0f}<extra></extra>',
         name='🛍️ Products',
         showlegend=True
     ))
     
     fig_net.update_layout(
-        title="Bipartite Customer-Product Network",
+        title="Bipartite Network: Pelanggan ↔ Produk (Node Size = Degree)",
         showlegend=True,
         hovermode='closest',
-        height=550,
+        height=600,
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         plot_bgcolor='#f9fafb',
         paper_bgcolor='#ffffff',
-        font=dict(color='#1f2937'),
-        margin=dict(l=0, r=0, t=50, b=0)
+        font=dict(color='#1f2937', size=12),
+        margin=dict(l=20, r=20, t=60, b=20)
     )
     
     st.plotly_chart(fig_net, use_container_width=True)
-    st.caption("🔴 Merah (lingkaran) = Pelanggan | 🔵 Biru (kotak) = Produk | Ukuran Node = Jumlah koneksi (degree) | Garis Hitam = Hubungan pembelian")
+    st.caption("🔴 Merah = Pelanggan | 🔵 Biru = Produk | Ukuran = Jumlah koneksi | Garis = Hubungan pembelian")
     
     st.subheader("Network Insights & Applications")
     
@@ -342,10 +351,10 @@ with tab4:
     
     with col1:
         st.write("**🎯 High-Degree Customers (Hub Customers)**")
-        st.write("- Node pelanggan BESAR = banyak produk dibeli\n- Strategi: VIP program, exclusive offers, dedicated support\n- Contoh: C000001 dengan 407 pembelian (node paling besar)")
+        st.write("- Node pelanggan BESAR = banyak produk dibeli\n- Strategi: VIP program, exclusive offers, dedicated support\n- Contoh: C000001 dengan 407 pembelian")
         
         st.write("\n**📦 High-Degree Products (Popular Items)**")
-        st.write("- Node produk BESAR = dibeli banyak pelanggan\n- Strategi: Stock management, promotional bundling\n- Contoh: P866731 dibeli 108 pelanggan (node paling besar)")
+        st.write("- Node produk BESAR = dibeli banyak pelanggan\n- Strategi: Stock management, promotional bundling\n- Contoh: P866731 dibeli 108 pelanggan")
     
     with col2:
         st.write("**👥 Similar Customer Detection**")
