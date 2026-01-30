@@ -66,10 +66,46 @@ metrics = {
     'test_set': 1401061,
 }
 
-model_df = pd.DataFrame(data['model_performance']).T.reset_index()
-model_df.columns = ['Model', 'RMSE', 'Coverage']
-model_df['Products'] = [39498, 1601, 3259, 4860, 39498]  # From our data
-model_df['Recommendations'] = [1401061, 6050980, 12799, 6063779, 1401061]  # From our data
+# FIX: Convert model_performance to dataframe properly
+model_perf = data['model_performance']
+model_df = []
+for model_name, metrics_dict in model_perf.items():
+    rmse_val = metrics_dict.get('RMSE', 'N/A')
+    coverage_val = metrics_dict.get('Coverage', 0)
+    
+    # Convert RMSE to float if it's not 'N/A'
+    if isinstance(rmse_val, str) and rmse_val == 'N/A':
+        rmse_float = np.nan
+    else:
+        rmse_float = float(rmse_val)
+    
+    model_df.append({
+        'Model': model_name,
+        'RMSE': rmse_float,
+        'Coverage': float(coverage_val)
+    })
+
+model_df = pd.DataFrame(model_df)
+
+# Add Products and Recommendations columns
+products_map = {
+    'Random': 39498,
+    'Popularity': 39498,
+    'ALS': 1601,
+    'Content': 3259,
+    'Hybrid': 4860
+}
+
+recommendations_map = {
+    'Random': 1401061,
+    'Popularity': 1401061,
+    'ALS': 6050980,
+    'Content': 12799,
+    'Hybrid': 6063779
+}
+
+model_df['Products'] = model_df['Model'].map(products_map)
+model_df['Recommendations'] = model_df['Model'].map(recommendations_map)
 
 graph_stats = data['network_stats']
 
@@ -102,14 +138,23 @@ with tab1:
     st.subheader("Model Comparison")
     col1, col2, col3 = st.columns(3)
     
-    # Extract REAL data from model_df
-    als_rmse = model_df[model_df['Model'] == 'ALS']['RMSE'].values[0]
-    content_rmse = model_df[model_df['Model'] == 'Content']['RMSE'].values[0] if 'Content' in model_df['Model'].values else "N/A"
-    hybrid_rmse = model_df[model_df['Model'] == 'Hybrid']['RMSE'].values[0]
+    # Extract REAL data from model_df - safely handle NaN
+    als_row = model_df[model_df['Model'] == 'ALS']
+    content_row = model_df[model_df['Model'] == 'Content']
+    hybrid_row = model_df[model_df['Model'] == 'Hybrid']
     
-    col1.write(f"**ALS (Collaborative Filtering)**\n\nRMSE: {als_rmse}\n\nKeakuratan sedang, terbatas pada produk dalam data historis")
-    col2.write(f"**Content-Based (Berbasis Konten)**\n\nRMSE: {content_rmse}\n\nKeakuratan baik, dapat merekomendasikan produk baru")
-    col3.write(f"**Hybrid (Kombinasi) ✓**\n\nRMSE: {hybrid_rmse}\n\nKeakuratan terbaik dengan keseimbangan akurasi dan keberagaman")
+    als_rmse = als_row['RMSE'].values[0] if len(als_row) > 0 else "N/A"
+    content_rmse = content_row['RMSE'].values[0] if len(content_row) > 0 else "N/A"
+    hybrid_rmse = hybrid_row['RMSE'].values[0] if len(hybrid_row) > 0 else "N/A"
+    
+    # Format RMSE display
+    als_rmse_str = f"{als_rmse:.4f}" if not np.isnan(als_rmse) else "N/A"
+    content_rmse_str = f"{content_rmse:.4f}" if not np.isnan(content_rmse) else "N/A"
+    hybrid_rmse_str = f"{hybrid_rmse:.4f}" if not np.isnan(hybrid_rmse) else "N/A"
+    
+    col1.write(f"**ALS (Collaborative Filtering)**\n\nRMSE: {als_rmse_str}\n\nKeakuratan sedang, terbatas pada produk dalam data historis")
+    col2.write(f"**Content-Based (Berbasis Konten)**\n\nRMSE: {content_rmse_str}\n\nKeakuratan baik, dapat merekomendasikan produk baru")
+    col3.write(f"**Hybrid (Kombinasi) ✓**\n\nRMSE: {hybrid_rmse_str}\n\nKeakuratan terbaik dengan keseimbangan akurasi dan keberagaman")
     
     st.success("Model hybrid memberikan hasil terbaik dengan menyeimbangkan akurasi prediksi dan keberagaman rekomendasi produk.")
     
@@ -159,7 +204,9 @@ with tab2:
     
     st.subheader("RMSE - Semakin Rendah Semakin Baik")
     st.write("RMSE mengukur rata-rata kesalahan prediksi rating. Model dengan RMSE lebih rendah memiliki prediksi yang lebih akurat.")
-    rmse_df = model_df[['Model', 'RMSE']].sort_values('RMSE').reset_index(drop=True)
+    
+    # FIX: Filter out NaN values before sorting
+    rmse_df = model_df[['Model', 'RMSE']].dropna(subset=['RMSE']).sort_values('RMSE').reset_index(drop=True)
     colors = ['#2ecc71' if model == 'Hybrid' else '#3498db' for model in rmse_df['Model']]
     fig1 = px.bar(rmse_df, y='Model', x='RMSE', orientation='h', color='RMSE', color_continuous_scale='RdYlGn_r', title="Perbandingan Error Rate Model")
     fig1.update_traces(marker_color=colors)
@@ -364,45 +411,6 @@ with tab5:
     st.header("Personalized Recommendations")
     st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan REAL DATA dari hasil model training.")
     
-    # Sample customers dari REAL data
-    top_customers_list = data['top_customers'].head(5)['Customer'].tolist()
-    
-    samples = {}
-    for i, cust in enumerate(top_customers_list):
-        samples[cust] = {
-            'purchases': [f'Product {j}' for j in range(3)],
-            'als': [f'Recommended ALS {j}' for j in range(3)],
-            'content': [f'Recommended Content {j}' for j in range(3)],
-            'hybrid': [f'Recommended Hybrid {j}' for j in range(3)]
-        }
-    
-    st.subheader("Select Customer")
-    selected = st.selectbox("Pilih pelanggan untuk melihat rekomendasinya:", top_customers_list, format_func=lambda x: f"{x[:16]}... (Top Customer)")
-    
-    if selected:
-        st.subheader(f"Purchase History - {selected}")
-        st.info(f"Pelanggan ini memiliki {data['top_customers'][data['top_customers']['Customer']==selected]['Degree'].values[0]:.0f} pembelian")
-        
-        st.subheader("Product Recommendations by Method")
-        c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.write("**Collaborative Filtering**")
-            st.write("*Berdasarkan: Pelanggan Serupa*\n\nMenemukan pelanggan lain dengan preferensi serupa dan merekomendasikan produk yang mereka beli")
-            st.caption("Rekomendasi akan ditampilkan dari model ALS")
-        
-        with c2:
-            st.write("**Content-Based**")
-            st.write("*Berdasarkan: Fitur Produk*\n\nMerekomendasikan produk dengan fitur/karakteristik serupa dengan yang sudah dibeli")
-            st.caption("Rekomendasi akan ditampilkan dari model Content-Based")
-        
-        with c3:
-            st.write("**Hybrid (RECOMMENDED) ✓**")
-            st.write("*Berdasarkan: Kombinasi Kedua Metode*\n\nMenggabungkan keuntungan kedua metode untuk hasil optimal")
-            st.success("⭐ Model ini memberikan hasil terbaik")
-        
-        st.info("💡 **Insight**: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik antara akurasi dan keberagaman produk yang direkomendasikan.")
-    
     st.subheader("Recommendation Strategy by Customer Segment")
     st.markdown("""
     **Cold-Start Users (Pelanggan Baru - Tanpa Riwayat Pembelian)**
@@ -420,6 +428,11 @@ with tab5:
     - Alasan: Mereka sudah familiar dengan produk standar, perlu diversifikasi untuk fresh recommendations
     - Strategi: Rekomendasi niche, produk eksklusif, pre-order produk baru
     """)
+    
+    st.subheader("Top Customers from REAL DATA")
+    top_customers_list = data['top_customers'].head(5)
+    st.dataframe(top_customers_list[['Customer', 'Degree']], use_container_width=True, hide_index=True)
+    st.caption("💡 Insight: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik antara akurasi dan keberagaman produk yang direkomendasikan.")
 
 # ============================================================================
 # FOOTER
