@@ -5,155 +5,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", layout="wide")
-
-# Initialize theme in session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'dark'
-
-# Theme toggle in header - Easy access
-col_title, col_theme = st.columns([5, 1])
-with col_title:
-    st.markdown("# Sistem Rekomendasi H&M")
-    st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
-with col_theme:
-    st.write("")  # Spacing
-    theme_option = st.selectbox(
-        "Theme",
-        options=['🌙 Dark', '☀️ Light'],
-        index=0 if st.session_state.theme == 'dark' else 1,
-        label_visibility="collapsed"
-    )
-    st.session_state.theme = 'dark' if theme_option == '🌙 Dark' else 'light'
-
+st.markdown("# Sistem Rekomendasi H&M")
+st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
 st.markdown("---")
-
-# Apply custom CSS based on theme
-if st.session_state.theme == 'dark':
-    st.markdown("""
-    <style>
-        /* Dark Theme */
-        .stApp {
-            background-color: #0E1117;
-            color: #FAFAFA;
-        }
-        .stMarkdown, .stText, p, span, div {
-            color: #FAFAFA !important;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            color: #FAFAFA !important;
-        }
-        .stDataFrame {
-            border: 1px solid #FFFFFF !important;
-        }
-        .stDataFrame table {
-            color: #FAFAFA !important;
-            background-color: #262730 !important;
-        }
-        .stDataFrame th {
-            background-color: #262730 !important;
-            color: #FAFAFA !important;
-            border: 1px solid #FFFFFF !important;
-        }
-        .stDataFrame td {
-            color: #FAFAFA !important;
-            border: 1px solid #FFFFFF !important;
-        }
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: #262730;
-        }
-        .stTabs [data-baseweb="tab"] {
-            color: #FAFAFA !important;
-        }
-        .stAlert {
-            background-color: #262730 !important;
-            color: #FAFAFA !important;
-        }
-        .stMetric {
-            background-color: #262730 !important;
-            color: #FAFAFA !important;
-        }
-        .stMetric label {
-            color: #FAFAFA !important;
-        }
-        .stMetric [data-testid="stMetricValue"] {
-            color: #FAFAFA !important;
-        }
-        .stSelectbox label {
-            color: #FAFAFA !important;
-        }
-        .stSelectbox div[data-baseweb="select"] {
-            background-color: #262730 !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    plotly_template = 'plotly_dark'
-    font_color = '#FAFAFA'
-    grid_color = '#444444'
-    bg_color = '#0E1117'
-    paper_bg = '#262730'
-else:
-    st.markdown("""
-    <style>
-        /* Light Theme */
-        .stApp {
-            background-color: #FFFFFF;
-            color: #000000;
-        }
-        .stMarkdown, .stText, p, span, div {
-            color: #000000 !important;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            color: #000000 !important;
-        }
-        .stDataFrame {
-            border: 1px solid #000000 !important;
-        }
-        .stDataFrame table {
-            color: #000000 !important;
-            background-color: #F5F5F5 !important;
-        }
-        .stDataFrame th {
-            background-color: #E0E0E0 !important;
-            color: #000000 !important;
-            border: 1px solid #000000 !important;
-        }
-        .stDataFrame td {
-            color: #000000 !important;
-            border: 1px solid #000000 !important;
-        }
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: #F5F5F5;
-        }
-        .stTabs [data-baseweb="tab"] {
-            color: #000000 !important;
-        }
-        .stAlert {
-            background-color: #F5F5F5 !important;
-            color: #000000 !important;
-        }
-        .stMetric {
-            background-color: #F5F5F5 !important;
-            color: #000000 !important;
-        }
-        .stMetric label {
-            color: #000000 !important;
-        }
-        .stMetric [data-testid="stMetricValue"] {
-            color: #000000 !important;
-        }
-        .stSelectbox label {
-            color: #000000 !important;
-        }
-        .stSelectbox div[data-baseweb="select"] {
-            background-color: #F5F5F5 !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    plotly_template = 'plotly_white'
-    font_color = '#000000'
-    grid_color = '#CCCCCC'
-    bg_color = '#FFFFFF'
-    paper_bg = '#FFFFFF'
 
 @st.cache_data
 def load_data():
@@ -212,9 +66,9 @@ with tab1:
     
     st.subheader("Model Comparison")
     c1, c2, c3 = st.columns(3)
-    c1.write("**ALS (Collaborative Filtering)**\nRMSE: 0.718\nKeakuratan sedang, terbatas pada produk dalam data historis")
-    c2.write("**Content-Based (Berbasis Konten)**\nRMSE: 0.65\nKeakuratan baik, dapat merekomendasikan produk baru")
-    c3.write("**Hybrid (Kombinasi) ✓**\nRMSE: 0.635\nKeakuratan terbaik dengan keseimbangan akurasi dan keberagaman")
+    c1.write("**ALS (Collaborative Filtering)**\n\nRMSE: 0.718\n\nKeakuratan sedang, terbatas pada produk dalam data historis")
+    c2.write("**Content-Based (Berbasis Konten)**\n\nRMSE: 0.65\n\nKeakuratan baik, dapat merekomendasikan produk baru")
+    c3.write("**Hybrid (Kombinasi) ✓**\n\nRMSE: 0.635\n\nKeakuratan terbaik dengan keseimbangan akurasi dan keberagaman")
     
     st.success("Model hybrid memberikan hasil terbaik dengan menyeimbangkan akurasi prediksi dan keberagaman rekomendasi produk.")
     
@@ -246,15 +100,15 @@ with tab2:
     st.markdown("**Penjelasan Model Rekomendasi:**")
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.write("**Popularity**\nMerekomendasikan produk populer global. Cara kerja: Ranking produk berdasarkan jumlah pembeli.")
+        st.write("**Popularity**\n\nMerekomendasikan produk populer global. Cara kerja: Ranking produk berdasarkan jumlah pembeli.")
     with col2:
-        st.write("**ALS**\nCollaborative filtering dengan matrix factorization. Cara kerja: Mencari pelanggan serupa berdasarkan preferensi tersembunyi.")
+        st.write("**ALS**\n\nCollaborative filtering dengan matrix factorization. Cara kerja: Mencari pelanggan serupa berdasarkan preferensi tersembunyi.")
     with col3:
-        st.write("**Content**\nContent-based filtering. Cara kerja: Merekomendasikan produk dengan fitur serupa dengan yang sudah dibeli.")
+        st.write("**Content**\n\nContent-based filtering. Cara kerja: Merekomendasikan produk dengan fitur serupa dengan yang sudah dibeli.")
     with col4:
-        st.write("**Hybrid ✓**\nKombinasi ALS + Content. Cara kerja: Menggabungkan kekuatan kedua metode untuk hasil optimal.")
+        st.write("**Hybrid ✓**\n\nKombinasi ALS + Content. Cara kerja: Menggabungkan kekuatan kedua metode untuk hasil optimal.")
     with col5:
-        st.write("**Random**\nBaseline untuk perbandingan. Cara kerja: Rekomendasi acak tanpa logika.")
+        st.write("**Random**\n\nBaseline untuk perbandingan. Cara kerja: Rekomendasi acak tanpa logika.")
     
     st.dataframe(model_df, use_container_width=True, hide_index=True)
     
@@ -262,66 +116,33 @@ with tab2:
     st.write("RMSE mengukur rata-rata kesalahan prediksi rating. Model dengan RMSE lebih rendah memiliki prediksi yang lebih akurat.")
     rmse_df = model_df[['Model', 'RMSE']].sort_values('RMSE').reset_index(drop=True)
     colors = ['#2ecc71' if model == 'Hybrid' else '#3498db' for model in rmse_df['Model']]
-    fig1 = px.bar(rmse_df, y='Model', x='RMSE', orientation='h', color='RMSE', color_continuous_scale='RdYlGn_r', title="Perbandingan Error Rate Model", template=plotly_template)
+    fig1 = px.bar(rmse_df, y='Model', x='RMSE', orientation='h', color='RMSE', color_continuous_scale='RdYlGn_r', title="Perbandingan Error Rate Model")
     fig1.update_traces(marker_color=colors)
-    fig1.update_layout(
-        height=350, 
-        showlegend=False,
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig1.update_layout(height=350, showlegend=False)
     st.plotly_chart(fig1, use_container_width=True)
     st.caption("✓ Hybrid model memiliki RMSE terendah (0.635) = akurasi prediksi terbaik")
     
     st.subheader("Coverage - Semakin Tinggi Semakin Baik")
     st.write("Coverage menunjukkan persentase produk yang dapat direkomendasikan oleh model. Coverage tinggi berarti model tidak hanya merekomendasikan produk populer saja.")
     cov_df = model_df[['Model', 'Coverage']].sort_values('Coverage', ascending=False).reset_index(drop=True)
-    fig2 = px.bar(cov_df, x='Model', y='Coverage', color='Coverage', color_continuous_scale='Greens', title="Cakupan Produk yang Dapat Direkomendasikan (%)", template=plotly_template)
-    fig2.update_layout(
-        height=350,
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig2 = px.bar(cov_df, x='Model', y='Coverage', color='Coverage', color_continuous_scale='Greens', title="Cakupan Produk yang Dapat Direkomendasikan (%)")
+    fig2.update_layout(height=350)
     st.plotly_chart(fig2, use_container_width=True)
     st.caption("✓ Hybrid model mencakup 4,60% dari semua produk = keseimbangan antara akurasi dan keberagaman")
     
     st.subheader("Product Diversity - Semakin Tinggi Semakin Baik")
     st.write("Menunjukkan berapa banyak produk berbeda yang direkomendasikan model kepada pelanggan. Jumlah lebih tinggi berarti keberagaman rekomendasi.")
     prod_df = model_df[['Model', 'Products']].sort_values('Products', ascending=False).reset_index(drop=True)
-    fig3 = px.bar(prod_df, x='Model', y='Products', color='Products', color_continuous_scale='Blues', title="Jumlah Produk Unik yang Direkomendasikan", template=plotly_template)
-    fig3.update_layout(
-        height=350,
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig3 = px.bar(prod_df, x='Model', y='Products', color='Products', color_continuous_scale='Blues', title="Jumlah Produk Unik yang Direkomendasikan")
+    fig3.update_layout(height=350)
     st.plotly_chart(fig3, use_container_width=True)
     st.caption("✓ Hybrid model merekomendasikan 4.854 produk unik = keberagaman yang baik dibanding ALS (1.598)")
     
     st.subheader("Daily Recommendation Capacity - Semakin Tinggi Semakin Baik")
     st.write("Kapasitas model untuk menghasilkan rekomendasi per hari. Volume tinggi menunjukkan skalabilitas model untuk bisnis besar.")
     rec_df = model_df[['Model', 'Recommendations']].sort_values('Recommendations', ascending=False).reset_index(drop=True)
-    fig4 = px.bar(rec_df, x='Model', y='Recommendations', color='Recommendations', color_continuous_scale='Purples', title="Kapasitas Rekomendasi Harian", template=plotly_template)
-    fig4.update_layout(
-        height=350,
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig4 = px.bar(rec_df, x='Model', y='Recommendations', color='Recommendations', color_continuous_scale='Purples', title="Kapasitas Rekomendasi Harian")
+    fig4.update_layout(height=350)
     st.plotly_chart(fig4, use_container_width=True)
     st.caption("✓ Hybrid model menghasilkan 6 juta rekomendasi per hari = skalabel untuk operasi H&M yang besar")
 
@@ -350,16 +171,8 @@ with tab3:
     np.random.seed(42)
     purchases = np.random.exponential(scale=2, size=1000)
     purchases = np.clip(purchases, 1, 150)
-    fig_dist = px.histogram(x=purchases, nbins=30, title="Distribusi Jumlah Produk per Pelanggan", labels={'x': 'Jumlah Produk', 'y': 'Jumlah Pelanggan'}, color_discrete_sequence=['#1f77b4'], template=plotly_template)
-    fig_dist.update_layout(
-        height=350,
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig_dist = px.histogram(x=purchases, nbins=30, title="Distribusi Jumlah Produk per Pelanggan", labels={'x': 'Jumlah Produk', 'y': 'Jumlah Pelanggan'}, color_discrete_sequence=['#1f77b4'])
+    fig_dist.update_layout(height=350)
     st.plotly_chart(fig_dist, use_container_width=True)
     st.caption("Mean: 2 produk per pelanggan | Power-law distribution (umum di e-commerce)")
     
@@ -369,18 +182,8 @@ with tab3:
         'Product Name': ['Kaos Casual Biru', 'Celana Denim Premium', 'Jaket Outdoor', 'Hoodie Unisex', 'Celana Casual', 'Kaos Band', 'Kemeja Casual', 'Shorts Summer', 'Tank Top', 'Polo Shirt'],
         'Customers': [108, 103, 100, 99, 98, 96, 95, 93, 91, 88]
     }).sort_values('Customers', ascending=True).reset_index(drop=True)
-    fig_top = px.bar(top_p, y='Product Name', x='Customers', orientation='h', color='Customers', color_continuous_scale='Blues', title="Produk Paling Banyak Dibeli", template=plotly_template)
-    fig_top.update_layout(
-        height=400, 
-        xaxis_title="Jumlah Pelanggan", 
-        yaxis_title="",
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig_top = px.bar(top_p, y='Product Name', x='Customers', orientation='h', color='Customers', color_continuous_scale='Blues', title="Produk Paling Banyak Dibeli")
+    fig_top.update_layout(height=400, xaxis_title="Jumlah Pelanggan", yaxis_title="")
     st.plotly_chart(fig_top, use_container_width=True)
     
     st.subheader("Top 10 Most Active Customers")
@@ -388,23 +191,13 @@ with tab3:
         'Customer': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005', 'C000006', 'C000007', 'C000008', 'C000009', 'C000010'],
         'Products': [407, 389, 378, 368, 346, 363, 366, 372, 407, 378]
     }).sort_values('Products', ascending=True).reset_index(drop=True)
-    fig_cust = px.bar(top_c, y='Customer', x='Products', orientation='h', color='Products', color_continuous_scale='Oranges', title="Pelanggan dengan Pembelian Terbanyak", template=plotly_template)
-    fig_cust.update_layout(
-        height=400, 
-        xaxis_title="Jumlah Produk", 
-        yaxis_title="",
-        font=dict(color=font_color),
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color),
-        title_font_color=font_color
-    )
+    fig_cust = px.bar(top_c, y='Customer', x='Products', orientation='h', color='Products', color_continuous_scale='Oranges', title="Pelanggan dengan Pembelian Terbanyak")
+    fig_cust.update_layout(height=400, xaxis_title="Jumlah Produk", yaxis_title="")
     st.plotly_chart(fig_cust, use_container_width=True)
 
 with tab4:
     st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik merah di kiri adalah pelanggan, setiap kotak teal di kanan adalah produk, dan garis menunjukkan pembelian. Analisis jaringan membantu menemukan: (1) pelanggan serupa melalui produk yang mereka beli, (2) kluster produk yang sering dibeli bersama, dan (3) pelanggan atau produk yang berpengaruh dalam jaringan.")
+    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik merah di kiri adalah pelanggan, setiap kotak teal di kanan adalah produk, dan garis menunjukkan pembelian. **Hover pada node untuk melihat koneksi, gunakan dropdown untuk highlight koneksi spesifik!**")
     
     st.subheader("Network Statistics")
     c1, c2, c3, c4 = st.columns(4)
@@ -424,40 +217,150 @@ with tab4:
     prod_x = [1] * n_prod
     prod_y = np.linspace(0, 1, n_prod)
     
-    edge_x = []
-    edge_y = []
+    # Buat dictionary untuk menyimpan edge connections
+    cust_connections = {i: [] for i in range(n_cust)}
+    prod_connections = {i: [] for i in range(n_prod)}
+    all_edges = []
+    
     for i in range(n_cust):
         for _ in range(np.random.randint(3, 8)):
             j = np.random.randint(0, n_prod)
-            edge_x.extend([cust_x[i], prod_x[j], None])
-            edge_y.extend([cust_y[i], prod_y[j], None])
-    
-    # Set edge color based on theme
-    edge_color = 'rgba(255,255,255,0.2)' if st.session_state.theme == 'dark' else 'rgba(0,0,0,0.2)'
+            all_edges.append((i, j))
+            cust_connections[i].append(j)
+            prod_connections[j].append(i)
     
     fig_net = go.Figure()
-    fig_net.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color=edge_color), hoverinfo='none', showlegend=False))
-    fig_net.add_trace(go.Scatter(x=cust_x, y=cust_y, mode='markers', marker=dict(size=12, color='#FF6B6B'), text=[f'C{i}' for i in range(n_cust)], hovertemplate='<b>%{text}</b><extra></extra>', name='Pelanggan', showlegend=True))
-    fig_net.add_trace(go.Scatter(x=prod_x, y=prod_y, mode='markers', marker=dict(size=10, color='#4ECDC4', symbol='square'), text=[f'P{i}' for i in range(n_prod)], hovertemplate='<b>%{text}</b><extra></extra>', name='Produk', showlegend=True))
+    
+    # Tambahkan base edges (warna default, transparan)
+    edge_x = []
+    edge_y = []
+    for i, j in all_edges:
+        edge_x.extend([cust_x[i], prod_x[j], None])
+        edge_y.extend([cust_y[i], prod_y[j], None])
+    
+    fig_net.add_trace(go.Scatter(
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(width=0.5, color='rgba(255,255,255,0.2)'),
+        hoverinfo='skip',
+        showlegend=False,
+        name='edges_base'
+    ))
+    
+    # Tambahkan highlight edges untuk setiap customer
+    for cust_id in range(n_cust):
+        highlight_x = []
+        highlight_y = []
+        for prod_id in cust_connections[cust_id]:
+            highlight_x.extend([cust_x[cust_id], prod_x[prod_id], None])
+            highlight_y.extend([cust_y[cust_id], prod_y[prod_id], None])
+        
+        fig_net.add_trace(go.Scatter(
+            x=highlight_x, y=highlight_y,
+            mode='lines',
+            line=dict(width=2.5, color='rgba(255, 107, 107, 0.9)'),
+            hoverinfo='skip',
+            showlegend=False,
+            visible=False,
+            name=f'edges_cust_{cust_id}'
+        ))
+    
+    # Tambahkan highlight edges untuk setiap product
+    for prod_id in range(n_prod):
+        highlight_x = []
+        highlight_y = []
+        for cust_id in prod_connections[prod_id]:
+            highlight_x.extend([cust_x[cust_id], prod_x[prod_id], None])
+            highlight_y.extend([cust_y[cust_id], prod_y[prod_id], None])
+        
+        fig_net.add_trace(go.Scatter(
+            x=highlight_x, y=highlight_y,
+            mode='lines',
+            line=dict(width=2.5, color='rgba(78, 205, 196, 0.9)'),
+            hoverinfo='skip',
+            showlegend=False,
+            visible=False,
+            name=f'edges_prod_{prod_id}'
+        ))
+    
+    # Tambahkan customer nodes
+    fig_net.add_trace(go.Scatter(
+        x=cust_x, y=cust_y,
+        mode='markers',
+        marker=dict(size=14, color='#FF6B6B', line=dict(width=2, color='white')),
+        text=[f'Customer C{i}<br>Produk dibeli: {len(cust_connections[i])}' for i in range(n_cust)],
+        hovertemplate='<b>%{text}</b><extra></extra>',
+        name='Pelanggan',
+        showlegend=True
+    ))
+    
+    # Tambahkan product nodes
+    fig_net.add_trace(go.Scatter(
+        x=prod_x, y=prod_y,
+        mode='markers',
+        marker=dict(size=12, color='#4ECDC4', symbol='square', line=dict(width=2, color='white')),
+        text=[f'Product P{i}<br>Pembeli: {len(prod_connections[i])}' for i in range(n_prod)],
+        hovertemplate='<b>%{text}</b><extra></extra>',
+        name='Produk',
+        showlegend=True
+    ))
+    
+    # Buat buttons untuk interaktivitas
+    buttons = []
+    
+    # Button untuk reset (tampilkan semua edges default)
+    visibility_reset = [True] + [False] * (n_cust + n_prod) + [True, True]
+    buttons.append(dict(
+        label="🔄 Reset View",
+        method="update",
+        args=[{"visible": visibility_reset}]
+    ))
+    
+    # Buttons untuk setiap customer
+    for cust_id in range(n_cust):
+        visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
+        visibility[1 + cust_id] = True
+        buttons.append(dict(
+            label=f"👤 Customer C{cust_id} ({len(cust_connections[cust_id])} produk)",
+            method="update",
+            args=[{"visible": visibility}]
+        ))
+    
+    # Buttons untuk setiap product
+    for prod_id in range(n_prod):
+        visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
+        visibility[1 + n_cust + prod_id] = True
+        buttons.append(dict(
+            label=f"📦 Product P{prod_id} ({len(prod_connections[prod_id])} pembeli)",
+            method="update",
+            args=[{"visible": visibility}]
+        ))
+    
     fig_net.update_layout(
-        title="Jaringan Bipartite Pelanggan-Produk", 
-        showlegend=True, 
-        hovermode='closest', 
-        height=500, 
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), 
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), 
-        plot_bgcolor=bg_color,
-        paper_bgcolor=paper_bg,
-        font=dict(color=font_color),
-        title_font_color=font_color
+        title="Jaringan Bipartite Pelanggan-Produk (Interactive Highlighting)",
+        showlegend=True,
+        hovermode='closest',
+        height=600,
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor='rgba(20,20,20,1)',
+        updatemenus=[
+            dict(
+                type="dropdown",
+                direction="down",
+                x=0.01,
+                y=0.99,
+                showactive=True,
+                buttons=buttons,
+                bgcolor='rgba(255,255,255,0.1)',
+                bordercolor='rgba(255,255,255,0.3)',
+                font=dict(size=11)
+            )
+        ]
     )
     
     st.plotly_chart(fig_net, use_container_width=True)
-    
-    if st.session_state.theme == 'dark':
-        st.caption("Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | Garis Putih = Hubungan pembelian")
-    else:
-        st.caption("Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | Garis Hitam = Hubungan pembelian")
+    st.caption("🎯 Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | **Gunakan dropdown di kiri atas untuk highlight koneksi spesifik**")
     
     st.subheader("Cara Menggunakan Graph Analytics")
     st.markdown("""
