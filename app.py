@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", layout="wide")
 
-# ===== WHITE THEME + BLACK TEXT =====
+# ===== WHITE THEME + BLACK TEXT + TABLE FIX =====
 st.markdown(
     """
     <style>
@@ -24,15 +24,35 @@ st.markdown(
         [data-testid="stToolbar"] {
             background-color: #ffffff !important;
         }
+
         /* Semua teks markdown & komponen standar */
         .stMarkdown, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
         .stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
         div, p, span, label {
             color: #111827 !important;
         }
-        /* Teks di dalam metric */
+
+        /* Metric text */
         [data-testid="stMetric"] > div {
             color: #111827 !important;
+        }
+
+        /* Dataframe & table jadi putih dengan border gelap */
+        .stDataFrame, .stTable {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+        }
+        .stDataFrame table, .stTable table {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            border: 1px solid #111827 !important;
+            border-collapse: collapse !important;
+        }
+        .stDataFrame th, .stDataFrame td,
+        .stTable th, .stTable td {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            border: 1px solid #D1D5DB !important;  /* abu border */
         }
     </style>
     """,
@@ -194,6 +214,16 @@ with tab2:
         plot_bgcolor="#f9fafb",
         paper_bgcolor="#ffffff",
         font=dict(color="#111827"),
+        xaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
+        yaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
     )
 
     st.subheader("RMSE - Semakin Rendah Semakin Baik")
@@ -336,6 +366,16 @@ with tab3:
         plot_bgcolor="#f9fafb",
         paper_bgcolor="#ffffff",
         font=dict(color="#111827"),
+        xaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
+        yaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
     )
     st.plotly_chart(fig_dist, use_container_width=True)
     st.caption("Mean: 2 produk per pelanggan | Power-law distribution (umum di e-commerce)")
@@ -386,6 +426,16 @@ with tab3:
         plot_bgcolor="#f9fafb",
         paper_bgcolor="#ffffff",
         font=dict(color="#111827"),
+        xaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
+        yaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
     )
     st.plotly_chart(fig_top, use_container_width=True)
 
@@ -423,6 +473,16 @@ with tab3:
         plot_bgcolor="#f9fafb",
         paper_bgcolor="#ffffff",
         font=dict(color="#111827"),
+        xaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
+        yaxis=dict(
+            color="#111827",
+            titlefont=dict(color="#111827"),
+            tickfont=dict(color="#111827"),
+        ),
     )
     st.plotly_chart(fig_cust, use_container_width=True)
 
@@ -476,13 +536,13 @@ with tab4:
 
     fig_net = go.Figure()
 
-    # Edges
+    # Edges - abu gelap agar terlihat di background putih
     fig_net.add_trace(
         go.Scatter(
             x=edge_x,
             y=edge_y,
             mode="lines",
-            line=dict(width=0.6, color="rgba(0,0,0,0.15)"),
+            line=dict(width=0.6, color="rgba(31,41,55,0.25)"),  # abu gelap
             hoverinfo="none",
             showlegend=False,
         )
@@ -732,37 +792,55 @@ with tab5:
 
         with c1:
             st.write("**Collaborative Filtering**")
-            st.write(
-                "*Berdasarkan: Pelanggan Serupa*\n\n"
-                "Menemukan pelanggan lain dengan preferensi serupa dan merekomendasikan produk yang mereka beli"
-            )
-            for i, (code, name) in enumerate(data["als"], 1):
-                st.caption(f"{i}. {name} ({code})")
-
+            st.write("_Berdasarkan: Pelanggan Serupa_")
         with c2:
             st.write("**Content-Based**")
-            st.write(
-                "*Berdasarkan: Fitur Produk*\n\n"
-                "Merekomendasikan produk dengan fitur/karakteristik serupa dengan yang sudah dibeli"
-            )
-            for i, (code, name) in enumerate(data["content"], 1):
-                st.caption(f"{i}. {name} ({code})")
-
+            st.write("_Berdasarkan: Fitur Produk_")
         with c3:
             st.write("**Hybrid (RECOMMENDED) ✓**")
-            st.write(
-                "*Berdasarkan: Kombinasi Kedua Metode*\n\n"
-                "Menggabungkan keuntungan kedua metode untuk hasil optimal"
-            )
-            for i, (code, name) in enumerate(data["hybrid"], 1):
-                if i == 1:
-                    st.success(f"⭐ Top Recommendation: {name} ({code})")
-                else:
-                    st.caption(f"{i}. {name} ({code})")
+            st.write("_Berdasarkan: Kombinasi Kedua Metode_")
 
-        st.info(
-            "💡 **Insight**: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik antara akurasi "
-            "dan keberagaman produk yang direkomendasikan."
+        cf_items = data["als"]
+        cb_items = data["content"]
+        hy_items = data["hybrid"]
+        max_len = max(len(cf_items), len(cb_items), len(hy_items))
+
+        for i in range(max_len):
+            with c1:
+                if i < len(cf_items):
+                    code, name = cf_items[i]
+                    st.write(f"{i+1}. {name} ({code})")
+                else:
+                    st.write("")
+            with c2:
+                if i < len(cb_items):
+                    code, name = cb_items[i]
+                    st.write(f"{i+1}. {name} ({code})")
+                else:
+                    st.write("")
+            with c3:
+                if i < len(hy_items):
+                    code, name = hy_items[i]
+                    if i == 0:
+                        st.markdown(
+                            f"<div style='background-color:#DCFCE7; padding:0.5rem 0.75rem; border-radius:0.5rem; color:#111827; border:1px solid #16A34A;'>"
+                            f"⭐ <b>Top Recommendation:</b> {name} ({code})</div>",
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.write(f"{i+1}. {name} ({code})")
+                else:
+                    st.write("")
+
+        # Insight box dengan background abu muda, teks hitam
+        st.markdown(
+            """
+            <div style="background-color:#E5E7EB; padding:0.75rem 1rem; border-radius:0.5rem; color:#111827;">
+                💡 <b>Insight</b>: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik
+                antara akurasi dan keberagaman produk yang direkomendasikan.
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
     st.subheader("Recommendation Strategy by Customer Segment")
