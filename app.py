@@ -55,7 +55,7 @@ def load_model_comparison():
     """Load model comparison data - UPDATED with actual notebook results"""
     data = {
         'Model': ['Random', 'Popularity', 'Content', 'ALS', 'Hybrid'],
-        'RMSE': [2.0348, 0.4848, 'N/A', 0.718, 0.6350],
+        'RMSE': [2.0348, 0.4848, 0.65, 0.718, 0.6350],
         'Coverage_%': [37.42, 37.42, 3.09, 1.51, 4.60],
         'Unique_Products': [39498, 39498, 3256, 1598, 4854],
         'Recommendations': [1401061, 1401061, 12799, 6050980, 6063779],
@@ -111,31 +111,12 @@ graph_stats = load_graph_stats()
 sample_recommendations = load_sample_recommendations()
 
 # ============================================
-# HELPER FUNCTIONS
-# ============================================
-def sort_chart_data(df, value_col, ascending=True):
-    """Sort chart data for better readability"""
-    return df.sort_values(by=value_col, ascending=ascending)
-
-def create_metric_card(label, value, description=""):
-    """Create a metric card with description"""
-    col1, col2 = st.columns([0.6, 0.4])
-    with col1:
-        st.metric(label, f"{value:,}")
-    if description:
-        st.caption(description)
-
-# ============================================
 # HEADER
 # ============================================
-col1, col2 = st.columns([0.7, 0.3])
-with col1:
-    st.markdown("""
-    # H&M Recommendation System
-    **Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**
-    """)
-with col2:
-    st.write("")
+st.markdown("""
+# H&M Recommendation System
+**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**
+""")
 
 # ============================================
 # MAIN NAVIGATION
@@ -219,7 +200,7 @@ with tab1:
     with col2:
         st.write("""
         **Content-Based Filtering**
-        - RMSE: N/A
+        - RMSE: 0.65
         - Coverage: 3.09%
         - Products: 3,256
         
@@ -263,7 +244,6 @@ with tab2:
     # Model Comparison Table
     st.subheader("Performance Metrics Comparison")
     
-    # Create comparison dataframe with proper formatting
     comparison_df = pd.DataFrame({
         'Model': model_comparison['Model'],
         'RMSE': model_comparison['RMSE'],
@@ -275,21 +255,18 @@ with tab2:
     
     st.dataframe(comparison_df, use_container_width=True, hide_index=True)
     
-    st.caption("**Note**: Content-Based RMSE not evaluated; N/A indicates evaluation not performed")
-    
     # RMSE Chart (Ascending order - lower is better)
     st.subheader("Prediction Error (RMSE) - Lower is Better")
     
     rmse_data = pd.DataFrame({
-        'Model': ['Content*', 'Random', 'Hybrid', 'ALS', 'Popularity'],
-        'RMSE': [0, 2.0348, 0.6350, 0.718, 0.4848]
-    })
-    rmse_data = rmse_data[rmse_data['RMSE'] > 0].sort_values('RMSE')
+        'Model': ['Popularity', 'Hybrid', 'ALS', 'Content', 'Random'],
+        'RMSE': [0.4848, 0.6350, 0.718, 0.65, 2.0348]
+    }).sort_values('RMSE')
     
-    fig_rmse = px.bar(rmse_data, x='RMSE', y='Model', orientation='h',
+    fig_rmse = px.bar(rmse_data, y='Model', x='RMSE', orientation='h',
                       color='RMSE', color_continuous_scale='RdYlGn_r',
                       title="Lower RMSE = Better Accuracy")
-    fig_rmse.update_layout(height=300, showlegend=False)
+    fig_rmse.update_layout(height=300, showlegend=False, xaxis_title="RMSE", yaxis_title="")
     st.plotly_chart(fig_rmse, use_container_width=True)
     
     # Coverage Chart (Descending order - higher is better)
@@ -297,13 +274,13 @@ with tab2:
     
     coverage_data = pd.DataFrame({
         'Model': model_comparison['Model'],
-        'Coverage (%)': model_comparison['Coverage_%']
-    }).sort_values('Coverage (%)', ascending=False)
+        'Coverage': model_comparison['Coverage_%']
+    }).sort_values('Coverage', ascending=False)
     
-    fig_coverage = px.bar(coverage_data, x='Model', y='Coverage (%)',
-                         color='Coverage (%)', color_continuous_scale='Greens',
+    fig_coverage = px.bar(coverage_data, x='Model', y='Coverage',
+                         color='Coverage', color_continuous_scale='Greens',
                          title="% of Product Catalog Covered by Recommendations")
-    fig_coverage.update_layout(height=300, xaxis_categoryorder='total descending')
+    fig_coverage.update_layout(height=300, xaxis_title="", yaxis_title="Coverage (%)")
     st.plotly_chart(fig_coverage, use_container_width=True)
     
     # Unique Products Chart
@@ -317,23 +294,21 @@ with tab2:
     fig_products = px.bar(products_data, x='Model', y='Products',
                          color='Products', color_continuous_scale='Blues',
                          title="Number of Unique Products in Recommendations")
-    fig_products.update_layout(height=300, xaxis_categoryorder='total descending')
+    fig_products.update_layout(height=300, xaxis_title="", yaxis_title="Count")
     st.plotly_chart(fig_products, use_container_width=True)
     
     # Recommendations Volume
     st.subheader("Recommendation Volume - Scalability")
     
-    # Convert to numeric for sorting, handling the string values
     recs_data = pd.DataFrame({
         'Model': model_comparison['Model'],
-        'Recommendations': [int(x) if isinstance(x, (int, float)) else 0 
-                           for x in model_comparison['Recommendations']]
+        'Recommendations': model_comparison['Recommendations']
     }).sort_values('Recommendations', ascending=False)
     
     fig_recs = px.bar(recs_data, x='Model', y='Recommendations',
                      color='Recommendations', color_continuous_scale='Purples',
                      title="Total Recommendations (Daily Capacity)")
-    fig_recs.update_layout(height=300, xaxis_categoryorder='total descending')
+    fig_recs.update_layout(height=300, xaxis_title="", yaxis_title="Count")
     st.plotly_chart(fig_recs, use_container_width=True)
     
     # Key Insights
@@ -383,20 +358,20 @@ with tab3:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write("""
-        **Top Customer**: {0:,} purchases
+        st.write(f"""
+        **Top Customer**: {graph_stats['top_customer_connections']:,} purchases
         
         This represents a power user who frequently purchases from H&M.
         Their purchase history can help identify trending products.
-        """.format(graph_stats['top_customer_connections']))
+        """)
     
     with col2:
-        st.write("""
-        **Top Product**: {0:,} customers
+        st.write(f"""
+        **Top Product**: {graph_stats['top_product_customers']:,} customers
         
         This is the most popular product in the network.
         High customer overlap indicates strong product fit in the market.
-        """.format(graph_stats['top_product_customers']))
+        """)
     
     # Distribution Charts
     st.subheader("Purchase Distribution Analysis")
@@ -417,34 +392,34 @@ with tab3:
     st.subheader("Top 10 Most Popular Products")
     
     top_products = pd.DataFrame({
-        'Product ID': ['P866731', 'P866732', 'P866733', 'P866734', 'P866735', 
+        'Product_ID': ['P866731', 'P866732', 'P866733', 'P866734', 'P866735', 
                        'P866736', 'P866737', 'P866738', 'P866739', 'P866740'],
         'Customers': [108, 103, 100, 99, 98, 96, 95, 93, 91, 88]
     })
     
     top_products_sorted = top_products.sort_values('Customers', ascending=True)
     
-    fig_top_products = px.barh(top_products_sorted, x='Customers', y='Product ID',
+    fig_top_products = px.barh(top_products_sorted, x='Customers', y='Product_ID',
                                color='Customers', color_continuous_scale='Blues',
                                title="Top 10 Most Popular Products by Customer Count")
-    fig_top_products.update_layout(height=400, xaxis_categoryorder='total ascending')
+    fig_top_products.update_layout(height=400, xaxis_title="Number of Customers", yaxis_title="")
     st.plotly_chart(fig_top_products, use_container_width=True)
     
     # Top Customers
     st.subheader("Top 10 Most Connected Customers")
     
     top_customers = pd.DataFrame({
-        'Customer ID': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005',
+        'Customer_ID': ['C000001', 'C000002', 'C000003', 'C000004', 'C000005',
                         'C000006', 'C000007', 'C000008', 'C000009', 'C000010'],
         'Products': [407, 389, 378, 368, 346, 363, 366, 372, 407, 378]
     })
     
     top_customers_sorted = top_customers.sort_values('Products', ascending=True)
     
-    fig_top_customers = px.barh(top_customers_sorted, x='Products', y='Customer ID',
+    fig_top_customers = px.barh(top_customers_sorted, x='Products', y='Customer_ID',
                                 color='Products', color_continuous_scale='Oranges',
                                 title="Top 10 Most Connected Customers by Purchase Count")
-    fig_top_customers.update_layout(height=400, xaxis_categoryorder='total ascending')
+    fig_top_customers.update_layout(height=400, xaxis_title="Number of Products", yaxis_title="")
     st.plotly_chart(fig_top_customers, use_container_width=True)
 
 # ============================================
