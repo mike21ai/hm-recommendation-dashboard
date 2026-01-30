@@ -10,19 +10,22 @@ st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", 
 if 'theme' not in st.session_state:
     st.session_state.theme = 'dark'
 
-# Theme toggle button in sidebar
-with st.sidebar:
-    st.title("⚙️ Settings")
-    theme_option = st.radio(
-        "Select Theme:",
-        options=['Dark Theme', 'Light Theme'],
-        index=0 if st.session_state.theme == 'dark' else 1
+# Theme toggle in header - Easy access
+col_title, col_theme = st.columns([5, 1])
+with col_title:
+    st.markdown("# Sistem Rekomendasi H&M")
+    st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
+with col_theme:
+    st.write("")  # Spacing
+    theme_option = st.selectbox(
+        "Theme",
+        options=['🌙 Dark', '☀️ Light'],
+        index=0 if st.session_state.theme == 'dark' else 1,
+        label_visibility="collapsed"
     )
-    
-    if theme_option == 'Dark Theme':
-        st.session_state.theme = 'dark'
-    else:
-        st.session_state.theme = 'light'
+    st.session_state.theme = 'dark' if theme_option == '🌙 Dark' else 'light'
+
+st.markdown("---")
 
 # Apply custom CSS based on theme
 if st.session_state.theme == 'dark':
@@ -75,11 +78,17 @@ if st.session_state.theme == 'dark':
         .stMetric [data-testid="stMetricValue"] {
             color: #FAFAFA !important;
         }
+        .stSelectbox label {
+            color: #FAFAFA !important;
+        }
+        .stSelectbox div[data-baseweb="select"] {
+            background-color: #262730 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
     plotly_template = 'plotly_dark'
     font_color = '#FAFAFA'
-    grid_color = '#FFFFFF'
+    grid_color = '#444444'
     bg_color = '#0E1117'
     paper_bg = '#262730'
 else:
@@ -132,17 +141,19 @@ else:
         .stMetric [data-testid="stMetricValue"] {
             color: #000000 !important;
         }
+        .stSelectbox label {
+            color: #000000 !important;
+        }
+        .stSelectbox div[data-baseweb="select"] {
+            background-color: #F5F5F5 !important;
+        }
     </style>
     """, unsafe_allow_html=True)
     plotly_template = 'plotly_white'
     font_color = '#000000'
-    grid_color = '#000000'
+    grid_color = '#CCCCCC'
     bg_color = '#FFFFFF'
     paper_bg = '#FFFFFF'
-
-st.markdown("# Sistem Rekomendasi H&M")
-st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
-st.markdown("---")
 
 @st.cache_data
 def load_data():
@@ -260,7 +271,8 @@ with tab2:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig1, use_container_width=True)
     st.caption("✓ Hybrid model memiliki RMSE terendah (0.635) = akurasi prediksi terbaik")
@@ -275,7 +287,8 @@ with tab2:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig2, use_container_width=True)
     st.caption("✓ Hybrid model mencakup 4,60% dari semua produk = keseimbangan antara akurasi dan keberagaman")
@@ -290,7 +303,8 @@ with tab2:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig3, use_container_width=True)
     st.caption("✓ Hybrid model merekomendasikan 4.854 produk unik = keberagaman yang baik dibanding ALS (1.598)")
@@ -305,7 +319,8 @@ with tab2:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig4, use_container_width=True)
     st.caption("✓ Hybrid model menghasilkan 6 juta rekomendasi per hari = skalabel untuk operasi H&M yang besar")
@@ -342,7 +357,8 @@ with tab3:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig_dist, use_container_width=True)
     st.caption("Mean: 2 produk per pelanggan | Power-law distribution (umum di e-commerce)")
@@ -362,7 +378,8 @@ with tab3:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig_top, use_container_width=True)
     
@@ -380,7 +397,8 @@ with tab3:
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
         xaxis=dict(gridcolor=grid_color, color=font_color),
-        yaxis=dict(gridcolor=grid_color, color=font_color)
+        yaxis=dict(gridcolor=grid_color, color=font_color),
+        title_font_color=font_color
     )
     st.plotly_chart(fig_cust, use_container_width=True)
 
@@ -430,7 +448,8 @@ with tab4:
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), 
         plot_bgcolor=bg_color,
         paper_bgcolor=paper_bg,
-        font=dict(color=font_color)
+        font=dict(color=font_color),
+        title_font_color=font_color
     )
     
     st.plotly_chart(fig_net, use_container_width=True)
