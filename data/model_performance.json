@@ -1,0 +1,22 @@
+{
+  "Random": {
+    "RMSE": 2.0354,
+    "Coverage": 37.42
+  },
+  "Popularity": {
+    "RMSE": 0.4848,
+    "Coverage": 37.42
+  },
+  "ALS": {
+    "RMSE": 0.718,
+    "Coverage": 1.52
+  },
+  "Content": {
+    "RMSE": "N/A",
+    "Coverage": 3.09
+  },
+  "Hybrid": {
+    "RMSE": 0.635,
+    "Coverage": 4.6
+  }
+}
