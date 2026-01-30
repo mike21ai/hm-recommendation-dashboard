@@ -52,7 +52,7 @@ st.markdown(
         .stTable th, .stTable td {
             background-color: #ffffff !important;
             color: #111827 !important;
-            border: 1px solid #D1D5DB !important;  /* abu border */
+            border: 1px solid #D1D5DB !important;
         }
     </style>
     """,
@@ -536,13 +536,13 @@ with tab4:
 
     fig_net = go.Figure()
 
-    # Edges - abu gelap agar terlihat di background putih
+    # Edges - abu gelap supaya jelas di background putih
     fig_net.add_trace(
         go.Scatter(
             x=edge_x,
             y=edge_y,
             mode="lines",
-            line=dict(width=0.6, color="rgba(31,41,55,0.25)"),  # abu gelap
+            line=dict(width=0.6, color="rgba(31,41,55,0.25)"),
             hoverinfo="none",
             showlegend=False,
         )
@@ -832,7 +832,6 @@ with tab5:
                 else:
                     st.write("")
 
-        # Insight box dengan background abu muda, teks hitam
         st.markdown(
             """
             <div style="background-color:#E5E7EB; padding:0.75rem 1rem; border-radius:0.5rem; color:#111827;">
