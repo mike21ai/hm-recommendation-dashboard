@@ -18,7 +18,7 @@ st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboar
 st.markdown("---")
 
 # ============================================================================
-# DATA LOADING FROM GITHUB REPO (data/ folder)
+# DATA LOADING - SIMPLE & SAFE
 # ============================================================================
 
 @st.cache_data
@@ -53,27 +53,69 @@ def load_data():
     except FileNotFoundError as e:
         st.error(f"❌ Data file not found: {e.filename}")
         st.stop()
+    except Exception as e:
+        st.error(f"❌ Error loading data: {str(e)}")
+        st.stop()
 
 # Load REAL data
 data = load_data()
 
-# Extract data - with SAFE type conversion
-metrics = {
-    'total_interactions': 7005582,
-    'unique_customers': 742431,
-    'unique_products': 51232,
-    'train_set': 5604521,
-    'test_set': 1401061,
-}
+# DEBUG: Show what we got
+st.sidebar.write("### 🔍 DEBUG INFO")
+try:
+    st.sidebar.write(f"network_stats type: {type(data['network_stats'])}")
+    st.sidebar.write(f"network_stats keys: {list(data['network_stats'].keys())}")
+    st.sidebar.write(f"Full network_stats: {data['network_stats']}")
+except Exception as e:
+    st.sidebar.error(f"Error reading network_stats: {e}")
 
-# FIX: Convert model_performance to dataframe properly
+# Safe extraction with debugging
+try:
+    network_stats_raw = data['network_stats']
+    
+    # Direct safe conversion
+    total_nodes = int(network_stats_raw.get('total_nodes', 27542))
+    total_edges = int(network_stats_raw.get('total_edges', 150680))
+    num_customers = int(network_stats_raw.get('num_customers', 3000))
+    num_products = int(network_stats_raw.get('num_products', 24542))
+    density = float(network_stats_raw.get('density', 0.000397))
+    top_customer = int(network_stats_raw.get('top_customer', 407))
+    top_product = int(network_stats_raw.get('top_product', 102))
+    
+    graph_stats = {
+        'total_nodes': total_nodes,
+        'total_edges': total_edges,
+        'num_customers': num_customers,
+        'num_products': num_products,
+        'density': density,
+        'top_customer': top_customer,
+        'top_product': top_product
+    }
+    
+    st.sidebar.success("✅ Graph stats loaded successfully")
+    st.sidebar.write(f"top_customer: {top_customer} (type: {type(top_customer).__name__})")
+    st.sidebar.write(f"top_product: {top_product} (type: {type(top_product).__name__})")
+    
+except Exception as e:
+    st.sidebar.error(f"❌ Error converting graph_stats: {str(e)}")
+    # Fallback defaults
+    graph_stats = {
+        'total_nodes': 27542,
+        'total_edges': 150680,
+        'num_customers': 3000,
+        'num_products': 24542,
+        'density': 0.000397,
+        'top_customer': 407,
+        'top_product': 102
+    }
+
+# Extract model performance - SAFE
 model_perf = data['model_performance']
 model_df = []
 for model_name, metrics_dict in model_perf.items():
     rmse_val = metrics_dict.get('RMSE', 'N/A')
     coverage_val = metrics_dict.get('Coverage', 0)
     
-    # Convert RMSE to float if it's not 'N/A'
     if isinstance(rmse_val, str) and rmse_val == 'N/A':
         rmse_float = np.nan
     else:
@@ -115,16 +157,12 @@ recommendations_map = {
 model_df['Products'] = model_df['Model'].map(products_map).fillna(0).astype(int)
 model_df['Recommendations'] = model_df['Model'].map(recommendations_map).fillna(0).astype(int)
 
-# FIX: Safe extraction of graph_stats with type conversion
-graph_stats_raw = data['network_stats']
-graph_stats = {
-    'total_nodes': int(graph_stats_raw.get('total_nodes', 27542)),
-    'total_edges': int(graph_stats_raw.get('total_edges', 150680)),
-    'num_customers': int(graph_stats_raw.get('num_customers', 3000)),
-    'num_products': int(graph_stats_raw.get('num_products', 24542)),
-    'density': float(graph_stats_raw.get('density', 0.000397)),
-    'top_customer': int(graph_stats_raw.get('top_customer', 407)),
-    'top_product': int(graph_stats_raw.get('top_product', 102))
+metrics = {
+    'total_interactions': 7005582,
+    'unique_customers': 742431,
+    'unique_products': 51232,
+    'train_set': 5604521,
+    'test_set': 1401061,
 }
 
 # ============================================================================
@@ -134,7 +172,7 @@ graph_stats = {
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ringkasan", "🎯 Performa", "📈 Data", "🔗 Jaringan", "💡 Rekomendasi"])
 
 # ============================================================================
-# TAB 1: RINGKASAN (SUMMARY)
+# TAB 1: RINGKASAN
 # ============================================================================
 
 with tab1:
@@ -156,7 +194,6 @@ with tab1:
     st.subheader("Model Comparison")
     col1, col2, col3 = st.columns(3)
     
-    # Extract REAL data from model_df - safely handle NaN
     als_row = model_df[model_df['Model'] == 'ALS']
     content_row = model_df[model_df['Model'] == 'Content']
     hybrid_row = model_df[model_df['Model'] == 'Hybrid']
@@ -165,7 +202,6 @@ with tab1:
     content_rmse = content_row['RMSE'].values[0] if len(content_row) > 0 else np.nan
     hybrid_rmse = hybrid_row['RMSE'].values[0] if len(hybrid_row) > 0 else np.nan
     
-    # Format RMSE display
     als_rmse_str = f"{als_rmse:.4f}" if not np.isnan(als_rmse) else "N/A"
     content_rmse_str = f"{content_rmse:.4f}" if not np.isnan(content_rmse) else "N/A"
     hybrid_rmse_str = f"{hybrid_rmse:.4f}" if not np.isnan(hybrid_rmse) else "N/A"
@@ -178,28 +214,15 @@ with tab1:
     
     st.subheader("Roadmap Implementasi Sistem")
     st.markdown("""
-    **1. Deploy (Peluncuran)**
-    - Menerapkan model hybrid ke sistem live H&M dan integrasi dengan platform e-commerce
-    
-    **2. A/B Testing (Uji Perbandingan)**
-    - Membandingkan performa model hybrid dengan model lama pada segmen pelanggan berbeda
-    - Mengukur click-through rate, conversion rate, dan customer satisfaction
-    
-    **3. Monitor (Pemantauan)**
-    - Memantau kinerja model secara real-time untuk mendeteksi anomali atau penurunan performa
-    - Menganalisis feedback pelanggan dan engagement metrics
-    
-    **4. Optimize (Optimalisasi)**
-    - Melakukan fine-tuning parameter model berdasarkan data monitoring
-    - Menyesuaikan bobot antara collaborative filtering dan content-based sesuai hasil
-    
-    **5. Scale (Penskalaan)**
-    - Memperluas implementasi ke semua region dan segmen pelanggan H&M
-    - Meningkatkan kapasitas infrastruktur untuk volume transaksi yang lebih besar
+    **1. Deploy (Peluncuran)** - Menerapkan model hybrid ke sistem live H&M
+    **2. A/B Testing** - Membandingkan performa model hybrid dengan model lama
+    **3. Monitor** - Memantau kinerja model secara real-time
+    **4. Optimize** - Fine-tuning parameter model berdasarkan data monitoring
+    **5. Scale** - Memperluas ke semua region dan segmen pelanggan H&M
     """)
 
 # ============================================================================
-# TAB 2: PERFORMA (PERFORMANCE)
+# TAB 2: PERFORMA
 # ============================================================================
 
 with tab2:
@@ -208,22 +231,19 @@ with tab2:
     st.markdown("**Penjelasan Model Rekomendasi:**")
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
-        st.write("**Popularity**\n\nMerekomendasikan produk populer global. Cara kerja: Ranking produk berdasarkan jumlah pembeli.")
+        st.write("**Popularity**\n\nMerekomendasikan produk populer global.")
     with col2:
-        st.write("**ALS**\n\nCollaborative filtering dengan matrix factorization. Cara kerja: Mencari pelanggan serupa berdasarkan preferensi tersembunyi.")
+        st.write("**ALS**\n\nCollaborative filtering dengan matrix factorization.")
     with col3:
-        st.write("**Content**\n\nContent-based filtering. Cara kerja: Merekomendasikan produk dengan fitur serupa dengan yang sudah dibeli.")
+        st.write("**Content**\n\nContent-based filtering.")
     with col4:
-        st.write("**Hybrid ✓**\n\nKombinasi ALS + Content. Cara kerja: Menggabungkan kekuatan kedua metode untuk hasil optimal.")
+        st.write("**Hybrid ✓**\n\nKombinasi ALS + Content.")
     with col5:
-        st.write("**Random**\n\nBaseline untuk perbandingan. Cara kerja: Rekomendasi acak tanpa logika.")
+        st.write("**Random**\n\nBaseline untuk perbandingan.")
     
     st.dataframe(model_df[['Model', 'RMSE', 'Coverage']], use_container_width=True, hide_index=True)
     
     st.subheader("RMSE - Semakin Rendah Semakin Baik")
-    st.write("RMSE mengukur rata-rata kesalahan prediksi rating. Model dengan RMSE lebih rendah memiliki prediksi yang lebih akurat.")
-    
-    # FIX: Filter out NaN values before sorting
     rmse_df = model_df[['Model', 'RMSE']].dropna(subset=['RMSE']).sort_values('RMSE').reset_index(drop=True)
     if len(rmse_df) > 0:
         colors = ['#2ecc71' if model == 'Hybrid' else '#3498db' for model in rmse_df['Model']]
@@ -231,34 +251,27 @@ with tab2:
         fig1.update_traces(marker_color=colors)
         fig1.update_layout(height=350, showlegend=False)
         st.plotly_chart(fig1, use_container_width=True)
-        st.caption("✓ Hybrid model memiliki RMSE terendah = akurasi prediksi terbaik")
     
     st.subheader("Coverage - Semakin Tinggi Semakin Baik")
-    st.write("Coverage menunjukkan persentase produk yang dapat direkomendasikan oleh model. Coverage tinggi berarti model tidak hanya merekomendasikan produk populer saja.")
     cov_df = model_df[['Model', 'Coverage']].sort_values('Coverage', ascending=False).reset_index(drop=True)
     if len(cov_df) > 0:
         fig2 = px.bar(cov_df, x='Model', y='Coverage', color='Coverage', color_continuous_scale='Greens', title="Cakupan Produk yang Dapat Direkomendasikan (%)")
         fig2.update_layout(height=350)
         st.plotly_chart(fig2, use_container_width=True)
-        st.caption("✓ Hybrid model mencakup 4,60% dari semua produk = keseimbangan antara akurasi dan keberagaman")
     
-    st.subheader("Product Diversity - Semakin Tinggi Semakin Baik")
-    st.write("Menunjukkan berapa banyak produk berbeda yang direkomendasikan model kepada pelanggan. Jumlah lebih tinggi berarti keberagaman rekomendasi.")
+    st.subheader("Product Diversity")
     prod_df = model_df[['Model', 'Products']].sort_values('Products', ascending=False).reset_index(drop=True)
     if len(prod_df) > 0:
         fig3 = px.bar(prod_df, x='Model', y='Products', color='Products', color_continuous_scale='Blues', title="Jumlah Produk Unik yang Direkomendasikan")
         fig3.update_layout(height=350)
         st.plotly_chart(fig3, use_container_width=True)
-        st.caption("✓ Hybrid model merekomendasikan produk unik = keberagaman yang baik")
     
-    st.subheader("Daily Recommendation Capacity - Semakin Tinggi Semakin Baik")
-    st.write("Kapasitas model untuk menghasilkan rekomendasi per hari. Volume tinggi menunjukkan skalabilitas model untuk bisnis besar.")
+    st.subheader("Daily Recommendation Capacity")
     rec_df = model_df[['Model', 'Recommendations']].sort_values('Recommendations', ascending=False).reset_index(drop=True)
     if len(rec_df) > 0:
         fig4 = px.bar(rec_df, x='Model', y='Recommendations', color='Recommendations', color_continuous_scale='Purples', title="Kapasitas Rekomendasi Harian")
         fig4.update_layout(height=350)
         st.plotly_chart(fig4, use_container_width=True)
-        st.caption("✓ Model menghasilkan rekomendasi dalam jumlah besar = skalabel untuk operasi H&M")
 
 # ============================================================================
 # TAB 3: DATA ANALYSIS
@@ -270,7 +283,7 @@ with tab3:
     st.subheader("Network Properties")
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Node", f"{graph_stats['total_nodes']:,}")
-    c2.metric("Total Edge (Koneksi)", f"{graph_stats['total_edges']:,}")
+    c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
     c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
     
     st.subheader("Network Composition")
@@ -281,12 +294,20 @@ with tab3:
     st.subheader("Perilaku Pembelian Pelanggan")
     st.write("**Metrik ini menunjukkan pola pembelian dalam jaringan pelanggan-produk H&M:**")
     c1, c2 = st.columns(2)
-    c1.write(f"**Pelanggan Teratas**: {graph_stats['top_customer']:,} pembelian\n\nMenunjukkan pelanggan dengan frekuensi pembelian tertinggi (power user). Insight: Pelanggan ini adalah high-value customer yang penting untuk retensi.")
-    c2.write(f"**Produk Teratas**: {graph_stats['top_product']:,} pelanggan\n\nMenunjukkan produk yang dibeli oleh jumlah pelanggan terbanyak (populer). Insight: Produk ini adalah best-seller dan harus selalu tersedia.")
+    
+    # SAFE: Use try-except for the problematic line
+    try:
+        top_cust_val = f"{graph_stats['top_customer']:,}"
+        top_prod_val = f"{graph_stats['top_product']:,}"
+    except Exception as e:
+        st.warning(f"Error formatting values: {e}")
+        top_cust_val = str(graph_stats['top_customer'])
+        top_prod_val = str(graph_stats['top_product'])
+    
+    c1.write(f"**Pelanggan Teratas**: {top_cust_val} pembelian\n\nMenunjukkan pelanggan dengan frekuensi pembelian tertinggi (power user).")
+    c2.write(f"**Produk Teratas**: {top_prod_val} pelanggan\n\nMenunjukkan produk yang dibeli oleh jumlah pelanggan terbanyak (populer).")
     
     st.subheader("Distribusi Pembelian Produk per Pelanggan")
-    st.write("Grafik ini menunjukkan pola distribusi jumlah produk yang dibeli oleh setiap pelanggan.")
-    
     dist_data = data['distribution']
     if len(dist_data) > 0:
         fig_dist = px.histogram(
@@ -294,18 +315,17 @@ with tab3:
             x='purchases',
             nbins=30,
             title="Distribusi Jumlah Produk per Pelanggan (REAL DATA)",
-            labels={'purchases': 'Jumlah Produk', 'count': 'Jumlah Pelanggan'},
             color_discrete_sequence=['#1f77b4']
         )
         fig_dist.update_layout(height=350)
         st.plotly_chart(fig_dist, use_container_width=True)
-        st.caption(f"Mean: {dist_data['purchases'].mean():.2f} produk per pelanggan | Median: {dist_data['purchases'].median():.0f} | Max: {dist_data['purchases'].max():.0f}")
+        st.caption(f"Mean: {dist_data['purchases'].mean():.2f} | Median: {dist_data['purchases'].median():.0f} | Max: {dist_data['purchases'].max():.0f}")
     
     st.subheader("Top 10 Most Popular Products")
     top_p = data['top_products'].head(10).sort_values('Degree', ascending=True).reset_index(drop=True)
     if len(top_p) > 0:
-        fig_top = px.bar(top_p, y='Product', x='Degree', orientation='h', color='Degree', color_continuous_scale='Blues', title="Produk Paling Banyak Dibeli (REAL DATA)")
-        fig_top.update_layout(height=400, xaxis_title="Jumlah Pelanggan", yaxis_title="")
+        fig_top = px.bar(top_p, y='Product', x='Degree', orientation='h', color='Degree', color_continuous_scale='Blues')
+        fig_top.update_layout(height=400)
         st.plotly_chart(fig_top, use_container_width=True)
     
     st.subheader("Top 10 Most Active Customers")
@@ -313,8 +333,8 @@ with tab3:
     if len(top_c) > 0:
         top_c_copy = top_c.copy()
         top_c_copy['Customer_Short'] = top_c_copy['Customer'].astype(str).str[:16] + '...'
-        fig_cust = px.bar(top_c_copy, y='Customer_Short', x='Degree', orientation='h', color='Degree', color_continuous_scale='Oranges', title="Pelanggan dengan Pembelian Terbanyak (REAL DATA)")
-        fig_cust.update_layout(height=400, xaxis_title="Jumlah Produk", yaxis_title="")
+        fig_cust = px.bar(top_c_copy, y='Customer_Short', x='Degree', orientation='h', color='Degree', color_continuous_scale='Oranges')
+        fig_cust.update_layout(height=400)
         st.plotly_chart(fig_cust, use_container_width=True)
 
 # ============================================================================
@@ -323,7 +343,7 @@ with tab3:
 
 with tab4:
     st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli dari REAL DATA. Setiap titik biru di kiri adalah pelanggan, setiap titik merah di kanan adalah produk, dan garis menunjukkan pembelian.")
+    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli dari REAL DATA.")
     
     st.subheader("Network Statistics (REAL DATA)")
     c1, c2, c3, c4 = st.columns(4)
@@ -331,7 +351,6 @@ with tab4:
     c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
     c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
     c4.metric("Tipe", "Bipartite")
-    st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite")
     
     st.subheader("Customer-Product Network Visualization")
     
@@ -343,10 +362,8 @@ with tab4:
         products = nodes_df[nodes_df['type'] == 'product'].copy()
         
         if len(customers) == 0 or len(products) == 0:
-            st.warning("No customer or product data available")
             return None
         
-        # Simple 2-layer layout
         pos = {}
         cust_spacing = 100 / max(len(customers), 1)
         for i, (_, row) in enumerate(customers.iterrows()):
@@ -356,7 +373,6 @@ with tab4:
         for i, (_, row) in enumerate(products.iterrows()):
             pos[row['id']] = (2, i * prod_spacing)
         
-        # Edges
         edge_x, edge_y = [], []
         for _, e in edges_df.iterrows():
             if e['source'] in pos and e['target'] in pos:
@@ -373,7 +389,6 @@ with tab4:
             showlegend=False
         )
         
-        # Customer nodes
         cust_x = [pos[id][0] for id in customers['id']]
         cust_y = [pos[id][1] for id in customers['id']]
         cust_sizes = [min(d / 3 + 8, 30) for d in customers['degree']]
@@ -382,12 +397,9 @@ with tab4:
             x=cust_x, y=cust_y,
             mode='markers',
             name='Customers',
-            hoverinfo='text',
-            text=[f"Customer: {row['label']}<br>Degree: {row['degree']}" for _, row in customers.iterrows()],
-            marker=dict(size=cust_sizes, color='#4299E1', line=dict(width=1, color='white'), opacity=0.9)
+            marker=dict(size=cust_sizes, color='#4299E1', line=dict(width=1, color='white'))
         )
         
-        # Product nodes
         prod_x = [pos[id][0] for id in products['id']]
         prod_y = [pos[id][1] for id in products['id']]
         prod_sizes = [min(d / 1.5 + 5, 20) for d in products['degree']]
@@ -396,9 +408,7 @@ with tab4:
             x=prod_x, y=prod_y,
             mode='markers',
             name='Products',
-            hoverinfo='text',
-            text=[f"Product: {row['label']}<br>Degree: {row['degree']}" for _, row in products.iterrows()],
-            marker=dict(size=prod_sizes, color='#F56565', line=dict(width=1, color='white'), opacity=0.8)
+            marker=dict(size=prod_sizes, color='#F56565', line=dict(width=1, color='white'))
         )
         
         fig = go.Figure(
@@ -407,11 +417,9 @@ with tab4:
                 title="Customer–Product Bipartite Network (REAL DATA)",
                 height=700,
                 showlegend=True,
-                hovermode='closest',
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                plot_bgcolor='white',
-                paper_bgcolor='white'
+                plot_bgcolor='white'
             )
         )
         return fig
@@ -420,67 +428,41 @@ with tab4:
         fig_graph = create_bipartite_graph(nodes_df, edges_df)
         if fig_graph is not None:
             st.plotly_chart(fig_graph, use_container_width=True)
-    
-    st.caption("🎯 Biru (lingkaran) = Pelanggan | Merah (lingkaran) = Produk | **Data 100% REAL dari export Kaggle**")
-    
-    st.subheader("Cara Menggunakan Graph Analytics")
-    st.markdown("""
-    **1. Menemukan Pelanggan Serupa**: Pelanggan yang terhubung ke produk yang sama memiliki preferensi serupa → basis untuk collaborative filtering
-    
-    **2. Mengidentifikasi Kluster Produk**: Produk yang sering dibeli bersama oleh pelanggan sama membentuk kluster → produk bundling opportunities
-    
-    **3. Deteksi Komunitas**: Menemukan kelompok pelanggan dan produk yang saling terkait erat → segmentasi target marketing
-    
-    **4. Rekomendasi Berbasis Jaringan**: Jika pelanggan A mirip dengan B, dan B membeli produk X, maka X bisa direkomendasikan ke A
-    """)
+        else:
+            st.warning("Could not render graph")
 
 # ============================================================================
-# TAB 5: REKOMENDASI PRODUK
+# TAB 5: REKOMENDASI
 # ============================================================================
 
 with tab5:
     st.header("Personalized Recommendations")
-    st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan REAL DATA dari hasil model training.")
+    st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan REAL DATA.")
     
     st.subheader("Recommendation Strategy by Customer Segment")
     st.markdown("""
-    **Cold-Start Users (Pelanggan Baru - Tanpa Riwayat Pembelian)**
-    - Gunakan: Model Popularity (produk populer umum)
-    - Alasan: Tidak ada data historis untuk collaborative filtering dan content-based
-    - Strategi: Tunjukkan best-sellers, produk trending, kategori populer
+    **Cold-Start Users** - Gunakan: Model Popularity (produk populer umum)
     
-    **Warm Users (Pelanggan Aktif - Dengan Riwayat Pembelian)**
-    - Gunakan: Model Hybrid (kombinasi collaborative + content-based)
-    - Alasan: Data historis cukup untuk memberikan rekomendasi akurat dan beragam
-    - Strategi: Personalisasi berdasarkan preferensi individual dan patterns pelanggan serupa
+    **Warm Users** - Gunakan: Model Hybrid (kombinasi collaborative + content-based)
     
-    **Power Users (Pelanggan Setia - Pembelian Sangat Banyak)**
-    - Gunakan: Model Hybrid dengan tambahan exploration (mencoba produk baru)
-    - Alasan: Mereka sudah familiar dengan produk standar, perlu diversifikasi untuk fresh recommendations
-    - Strategi: Rekomendasi niche, produk eksklusif, pre-order produk baru
+    **Power Users** - Gunakan: Model Hybrid dengan tambahan exploration
     """)
     
     st.subheader("Top Customers from REAL DATA")
     top_customers_list = data['top_customers'].head(5)
-    st.dataframe(top_customers_list[['Customer', 'Degree']], use_container_width=True, hide_index=True)
-    st.caption("💡 Insight: Model hybrid direkomendasikan karena memberikan keseimbangan terbaik antara akurasi dan keberagaman produk yang direkomendasikan.")
+    if len(top_customers_list) > 0:
+        st.dataframe(top_customers_list[['Customer', 'Degree']], use_container_width=True, hide_index=True)
 
 # ============================================================================
 # FOOTER
 # ============================================================================
 
 st.markdown("---")
-st.markdown("<center style='color:#999; font-size:0.9em;'>✅ H&M Recommendation System | Hybrid Collaborative + Content Analytics | Data: 100% REAL dari GitHub</center>", unsafe_allow_html=True)
+st.markdown("<center style='color:#999; font-size:0.9em;'>✅ H&M Recommendation System | Data: 100% REAL dari GitHub</center>", unsafe_allow_html=True)
 
-# Sidebar info
 st.sidebar.title("📊 Dataset Info")
-st.sidebar.success("✅ Data loaded from `data/` folder (REAL DATA)")
+st.sidebar.success("✅ Data loaded from `data/` folder")
 st.sidebar.write(f"**Nodes**: {graph_stats['total_nodes']:,}")
 st.sidebar.write(f"**Edges**: {graph_stats['total_edges']:,}")
 st.sidebar.write(f"**Customers**: {graph_stats['num_customers']:,}")
 st.sidebar.write(f"**Products**: {graph_stats['num_products']:,}")
-
-stats_file = Path("data/network_stats.json")
-if stats_file.exists():
-    ts = datetime.fromtimestamp(os.path.getmtime(stats_file))
-    st.sidebar.write(f"**Last updated**: {ts.strftime('%Y-%m-%d %H:%M')}")
