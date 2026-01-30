@@ -197,7 +197,7 @@ with tab3:
 
 with tab4:
     st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik merah di kiri adalah pelanggan, setiap kotak teal di kanan adalah produk, dan garis menunjukkan pembelian. Analisis jaringan membantu menemukan: (1) pelanggan serupa melalui produk yang mereka beli, (2) kluster produk yang sering dibeli bersama, dan (3) pelanggan atau produk yang berpengaruh dalam jaringan.")
+    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Struktur bipartite memungkinkan kami menemukan: (1) pelanggan serupa melalui produk yang mereka beli, (2) kluster produk yang sering dibeli bersama, (3) pelanggan atau produk yang paling berpengaruh dalam jaringan.")
     
     st.subheader("Network Statistics")
     c1, c2, c3, c4 = st.columns(4)
@@ -205,12 +205,13 @@ with tab4:
     c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
     c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
     c4.metric("Tipe", "Bipartite")
-    st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite")
+    st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite. Node = entitas (pelanggan/produk), Edge = hubungan pembelian")
     
-    st.subheader("Customer-Product Network Visualization")
+    st.subheader("Customer-Product Bipartite Network (Node Size = Connection Degree)")
+    
     np.random.seed(42)
-    n_cust = 20
-    n_prod = 30
+    n_cust = 15
+    n_prod = 25
     
     cust_x = [-1] * n_cust
     cust_y = np.linspace(0, 1, n_cust)
@@ -219,30 +220,102 @@ with tab4:
     
     edge_x = []
     edge_y = []
+    cust_degrees = [0] * n_cust
+    prod_degrees = [0] * n_prod
+    
     for i in range(n_cust):
-        for _ in range(np.random.randint(3, 8)):
+        num_edges = np.random.randint(3, 8)
+        for _ in range(num_edges):
             j = np.random.randint(0, n_prod)
             edge_x.extend([cust_x[i], prod_x[j], None])
             edge_y.extend([cust_y[i], prod_y[j], None])
+            cust_degrees[i] += 1
+            prod_degrees[j] += 1
+    
+    cust_sizes = [8 + d*1.5 for d in cust_degrees]
+    prod_sizes = [6 + d*1.2 for d in prod_degrees]
     
     fig_net = go.Figure()
-    fig_net.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color='rgba(255,255,255,0.2)'), hoverinfo='none', showlegend=False))
-    fig_net.add_trace(go.Scatter(x=cust_x, y=cust_y, mode='markers', marker=dict(size=12, color='#FF6B6B'), text=[f'C{i}' for i in range(n_cust)], hovertemplate='<b>%{text}</b><extra></extra>', name='Pelanggan', showlegend=True))
-    fig_net.add_trace(go.Scatter(x=prod_x, y=prod_y, mode='markers', marker=dict(size=10, color='#4ECDC4', symbol='square'), text=[f'P{i}' for i in range(n_prod)], hovertemplate='<b>%{text}</b><extra></extra>', name='Produk', showlegend=True))
-    fig_net.update_layout(title="Jaringan Bipartite Pelanggan-Produk", showlegend=True, hovermode='closest', height=500, xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), plot_bgcolor='rgba(20,20,20,1)')
+    
+    fig_net.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color='rgba(255,255,255,0.15)'), hoverinfo='none', showlegend=False))
+    
+    fig_net.add_trace(go.Scatter(
+        x=cust_x, y=cust_y, mode='markers+text',
+        marker=dict(size=cust_sizes, color='#FF6B6B', line=dict(width=2, color='#FF4444')),
+        text=[f'C{i}' for i in range(n_cust)],
+        textposition='middle center',
+        textfont=dict(size=8, color='white', family='Arial Black'),
+        hovertemplate='<b>Customer C%{text}</b><br>Products Bought: %{marker.size:.0f}<extra></extra>',
+        name='👥 Customers',
+        showlegend=True
+    ))
+    
+    fig_net.add_trace(go.Scatter(
+        x=prod_x, y=prod_y, mode='markers+text',
+        marker=dict(size=prod_sizes, color='#4ECDC4', symbol='square', line=dict(width=2, color='#2A9D8F')),
+        text=[f'P{i}' for i in range(n_prod)],
+        textposition='middle center',
+        textfont=dict(size=7, color='white', family='Arial Black'),
+        hovertemplate='<b>Product P%{text}</b><br>Buyers: %{marker.size:.0f}<extra></extra>',
+        name='🛍️ Products',
+        showlegend=True
+    ))
+    
+    fig_net.update_layout(
+        title="Bipartite Customer-Product Network",
+        showlegend=True,
+        hovermode='closest',
+        height=550,
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor='rgba(15,15,25,1)',
+        paper_bgcolor='rgba(15,15,25,1)',
+        font=dict(color='#E0E0E0'),
+        margin=dict(l=0, r=0, t=50, b=0)
+    )
     
     st.plotly_chart(fig_net, use_container_width=True)
-    st.caption("Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | Garis Putih = Hubungan pembelian")
+    st.caption("🔴 Merah (lingkaran) = Pelanggan | 🔷 Teal (kotak) = Produk | Ukuran Node = Jumlah koneksi (degree) | Garis Putih = Hubungan pembelian")
     
-    st.subheader("Cara Menggunakan Graph Analytics")
+    st.subheader("Network Insights & Applications")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**🎯 High-Degree Customers (Hub Customers)**")
+        st.write("- Node pelanggan BESAR = banyak produk dibeli\n- Strategi: VIP program, exclusive offers, dedicated support\n- Contoh: C000001 dengan 407 pembelian (node paling besar)")
+        
+        st.write("\n**📦 High-Degree Products (Popular Items)**")
+        st.write("- Node produk BESAR = dibeli banyak pelanggan\n- Strategi: Stock management, promotional bundling\n- Contoh: P866731 dibeli 108 pelanggan (node paling besar)")
+    
+    with col2:
+        st.write("**👥 Similar Customer Detection**")
+        st.write("- Pelanggan terhubung ke produk SAMA = similar taste\n- Metode: Collaborative filtering memanfaatkan ini\n- Aplikasi: 'Customers who bought X also bought Y'")
+        
+        st.write("\n**🔗 Product Clustering & Co-purchase**")
+        st.write("- Produk sering dibeli BERSAMA = same cluster\n- Metode: Association rules, co-purchase analysis\n- Aplikasi: Product recommendations, bundle deals")
+    
+    st.subheader("How Graph Analytics Powers Hybrid Recommendations")
     st.markdown("""
-    **1. Menemukan Pelanggan Serupa**: Pelanggan yang terhubung ke produk yang sama memiliki preferensi serupa → basis untuk collaborative filtering
+    **Step 1: Network Node Identification**
+    - Identifikasi customer C1 sebagai target untuk rekomendasi
+    - Lihat node C1 terhubung ke produk mana [P1, P3, P5]
     
-    **2. Mengidentifikasi Kluster Produk**: Produk yang sering dibeli bersama oleh pelanggan sama membentuk kluster → produk bundling opportunities
+    **Step 2: Similar Customer Discovery (Collaborative)**
+    - Cari pelanggan lain yang membeli P1, P3, atau P5 → [C2, C4, C7]
+    - Pelanggan ini "serupa" dengan C1 berdasarkan shared purchases
     
-    **3. Deteksi Komunitas**: Menemukan kelompok pelanggan dan produk yang saling terkait erat → segmentasi target marketing
+    **Step 3: Content-Based Enrichment**
+    - Lihat karakteristik P1, P3, P5 (kategori, harga, brand, dll)
+    - Temukan produk baru dengan karakteristik serupa → [P6, P8]
     
-    **4. Rekomendasi Berbasis Jaringan**: Jika pelanggan A mirip dengan B, dan B membeli produk X, maka X bisa direkomendasikan ke A
+    **Step 4: Hybrid Scoring & Ranking**
+    - Kolaboratif score: Berapa banyak similar customers beli P2?
+    - Content score: Seberapa mirip P2 dengan purchase history C1?
+    - Hybrid score = (0.6 × kolaboratif) + (0.4 × content)
+    - Hasil: Ranking rekomendasi P2, P6, P8 berdasarkan hybrid score
+    
+    **Result**: Node degree dan network structure menjadi foundation untuk personalisasi akurat!
     """)
 
 with tab5:
