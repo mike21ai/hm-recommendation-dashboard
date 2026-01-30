@@ -3,10 +3,13 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import networkx as nx
+from networkx.algorithms import bipartite
+from collections import deque
 
 st.set_page_config(page_title="H&M Recommendation System", page_icon="🛍️", layout="wide")
-st.markdown("# Sistem Rekomendasi H&M")
-st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
+st.markdown("# Sistem Rekomendasi H&M dengan Graph Analytics")
+st.markdown("**Hybrid Collaborative Filtering + Content-Based + Graph Analytics Dashboard**")
 st.markdown("---")
 
 @st.cache_data
@@ -44,9 +47,49 @@ def load_data():
         'top_product': 104
     }, product_names
 
-metrics, model_df, graph_stats, product_names = load_data()
+@st.cache_resource
+def create_bipartite_graph():
+    """Create bipartite graph untuk analisis"""
+    np.random.seed(42)
+    n_cust = 20
+    n_prod = 30
+    
+    # Create bipartite graph
+    B = nx.Graph()
+    
+    # Add customer nodes (bipartite=0)
+    customer_nodes = [f'C{i}' for i in range(n_cust)]
+    B.add_nodes_from(customer_nodes, bipartite=0)
+    
+    # Add product nodes (bipartite=1)
+    product_nodes = [f'P{i}' for i in range(n_prod)]
+    B.add_nodes_from(product_nodes, bipartite=1)
+    
+    # Add edges (customer-product purchases)
+    cust_connections = {i: [] for i in range(n_cust)}
+    prod_connections = {i: [] for i in range(n_prod)}
+    
+    for i in range(n_cust):
+        n_purchases = np.random.randint(3, 8)
+        products = np.random.choice(n_prod, n_purchases, replace=False)
+        for j in products:
+            B.add_edge(f'C{i}', f'P{j}', weight=np.random.uniform(1, 5))
+            cust_connections[i].append(j)
+            prod_connections[j].append(i)
+    
+    return B, cust_connections, prod_connections, customer_nodes, product_nodes
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ringkasan", "🎯 Performa", "📈 Data", "🔗 Jaringan", "💡 Rekomendasi"])
+metrics, model_df, graph_stats, product_names = load_data()
+B, cust_connections, prod_connections, customer_nodes, product_nodes = create_bipartite_graph()
+
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "📊 Ringkasan", 
+    "🎯 Performa", 
+    "📈 Data", 
+    "🔗 Jaringan", 
+    "🎓 Graph Analytics",
+    "💡 Rekomendasi"
+])
 
 with tab1:
     st.header("Executive Summary")
@@ -196,19 +239,19 @@ with tab3:
     st.plotly_chart(fig_cust, use_container_width=True)
 
 with tab4:
-    st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik merah di kiri adalah pelanggan, setiap kotak teal di kanan adalah produk, dan garis menunjukkan pembelian. **Hover pada node untuk melihat koneksi, gunakan dropdown untuk highlight koneksi spesifik!**")
+    st.header("Network Graph Visualization")
+    st.info("Jaringan ini menunjukkan hubungan bipartite antara pelanggan dan produk. **Hover pada node untuk melihat koneksi, gunakan dropdown untuk highlight koneksi spesifik!**")
     
     st.subheader("Network Statistics")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Node", f"{graph_stats['total_nodes']:,}")
-    c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
-    c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
+    c1.metric("Total Node", f"{len(B.nodes()):,}")
+    c2.metric("Total Edge", f"{len(B.edges()):,}")
+    c3.metric("Kepadatan", f"{nx.density(B):.6f}")
     c4.metric("Tipe", "Bipartite")
     st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite")
     
     st.subheader("Customer-Product Network Visualization")
-    np.random.seed(42)
+    
     n_cust = 20
     n_prod = 30
     
@@ -217,24 +260,12 @@ with tab4:
     prod_x = [1] * n_prod
     prod_y = np.linspace(0, 1, n_prod)
     
-    # Buat dictionary untuk menyimpan edge connections
-    cust_connections = {i: [] for i in range(n_cust)}
-    prod_connections = {i: [] for i in range(n_prod)}
-    all_edges = []
-    
-    for i in range(n_cust):
-        for _ in range(np.random.randint(3, 8)):
-            j = np.random.randint(0, n_prod)
-            all_edges.append((i, j))
-            cust_connections[i].append(j)
-            prod_connections[j].append(i)
-    
     fig_net = go.Figure()
     
-    # Tambahkan base edges (warna default, transparan)
+    # Base edges
     edge_x = []
     edge_y = []
-    for i, j in all_edges:
+    for i, j in [(int(c[1:]), int(p[1:])) for c, p in B.edges() if c.startswith('C') and p.startswith('P')]:
         edge_x.extend([cust_x[i], prod_x[j], None])
         edge_y.extend([cust_y[i], prod_y[j], None])
     
@@ -247,7 +278,7 @@ with tab4:
         name='edges_base'
     ))
     
-    # Tambahkan highlight edges untuk setiap customer
+    # Highlight edges for each customer
     for cust_id in range(n_cust):
         highlight_x = []
         highlight_y = []
@@ -265,7 +296,7 @@ with tab4:
             name=f'edges_cust_{cust_id}'
         ))
     
-    # Tambahkan highlight edges untuk setiap product
+    # Highlight edges for each product
     for prod_id in range(n_prod):
         highlight_x = []
         highlight_y = []
@@ -283,7 +314,7 @@ with tab4:
             name=f'edges_prod_{prod_id}'
         ))
     
-    # Tambahkan customer nodes
+    # Customer nodes
     fig_net.add_trace(go.Scatter(
         x=cust_x, y=cust_y,
         mode='markers',
@@ -294,7 +325,7 @@ with tab4:
         showlegend=True
     ))
     
-    # Tambahkan product nodes
+    # Product nodes
     fig_net.add_trace(go.Scatter(
         x=prod_x, y=prod_y,
         mode='markers',
@@ -305,10 +336,10 @@ with tab4:
         showlegend=True
     ))
     
-    # Buat buttons untuk interaktivitas
+    # Buttons for interactivity
     buttons = []
     
-    # Button untuk reset (tampilkan semua edges default)
+    # Reset button
     visibility_reset = [True] + [False] * (n_cust + n_prod) + [True, True]
     buttons.append(dict(
         label="🔄 Reset View",
@@ -316,7 +347,7 @@ with tab4:
         args=[{"visible": visibility_reset}]
     ))
     
-    # Buttons untuk setiap customer
+    # Customer buttons
     for cust_id in range(n_cust):
         visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
         visibility[1 + cust_id] = True
@@ -326,7 +357,7 @@ with tab4:
             args=[{"visible": visibility}]
         ))
     
-    # Buttons untuk setiap product
+    # Product buttons
     for prod_id in range(n_prod):
         visibility = [False] + [False] * (n_cust + n_prod) + [True, True]
         visibility[1 + n_cust + prod_id] = True
@@ -361,19 +392,230 @@ with tab4:
     
     st.plotly_chart(fig_net, use_container_width=True)
     st.caption("🎯 Merah (lingkaran) = Pelanggan | Teal (kotak) = Produk | **Gunakan dropdown di kiri atas untuk highlight koneksi spesifik**")
-    
-    st.subheader("Cara Menggunakan Graph Analytics")
-    st.markdown("""
-    **1. Menemukan Pelanggan Serupa**: Pelanggan yang terhubung ke produk yang sama memiliki preferensi serupa → basis untuk collaborative filtering
-    
-    **2. Mengidentifikasi Kluster Produk**: Produk yang sering dibeli bersama oleh pelanggan sama membentuk kluster → produk bundling opportunities
-    
-    **3. Deteksi Komunitas**: Menemukan kelompok pelanggan dan produk yang saling terkait erat → segmentasi target marketing
-    
-    **4. Rekomendasi Berbasis Jaringan**: Jika pelanggan A mirip dengan B, dan B membeli produk X, maka X bisa direkomendasikan ke A
-    """)
 
 with tab5:
+    st.header("🎓 Graph Analytics (COMP8025 - Big Data Analytics)")
+    st.info("**Tab ini implements Graph Analytics sesuai materi kuliah**: Path Analytics, Centrality Analytics, Connectivity Analytics. Aplikasi: Finding influential customers, product recommendations through network paths, dan community detection.")
+    
+    # Calculate graph metrics
+    customers_set = set(n for n, d in B.nodes(data=True) if d['bipartite'] == 0)
+    products_set = set(B.nodes()) - customers_set
+    
+    ## 1. DEGREE CENTRALITY ANALYSIS
+    st.subheader("1️⃣ Centrality Analytics - Degree Centrality")
+    st.markdown("""
+    **Definisi (dari materi)**: Degree centrality mengukur pentingnya node berdasarkan jumlah koneksi langsung. 
+    Formula: `Centrality_degree(v) = d_v / (|N|-1)` dimana `d_v` adalah degree dari node v.
+    
+    **Aplikasi Business**: Identifikasi power users (customers dengan banyak pembelian) dan best-seller products (dibeli banyak customers).
+    """)
+    
+    # Calculate degree centrality for bipartite graph
+    degree_cust = dict(B.degree(customers_set))
+    degree_prod = dict(B.degree(products_set))
+    
+    top_customers = sorted(degree_cust.items(), key=lambda x: x[1], reverse=True)[:10]
+    top_products = sorted(degree_prod.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Top 10 Customers by Degree Centrality**")
+        df_cust = pd.DataFrame(top_customers, columns=['Customer', 'Degree (Jumlah Produk Dibeli)'])
+        df_cust['Normalized Centrality'] = df_cust['Degree (Jumlah Produk Dibeli)'] / (len(products_set) - 1)
+        st.dataframe(df_cust, hide_index=True, use_container_width=True)
+        st.caption("💡 Customers ini adalah **Power Users** - target untuk loyalty programs")
+    
+    with col2:
+        st.write("**Top 10 Products by Degree Centrality**")
+        df_prod = pd.DataFrame(top_products, columns=['Product', 'Degree (Jumlah Customers)'])
+        df_prod['Normalized Centrality'] = df_prod['Degree (Jumlah Customers)'] / (len(customers_set) - 1)
+        st.dataframe(df_prod, hide_index=True, use_container_width=True)
+        st.caption("💡 Products ini adalah **Best Sellers** - prioritas stock management")
+    
+    # Visualization
+    fig_deg = go.Figure()
+    fig_deg.add_trace(go.Bar(
+        y=[c[0] for c in top_customers],
+        x=[c[1] for c in top_customers],
+        orientation='h',
+        name='Customers',
+        marker_color='#FF6B6B'
+    ))
+    fig_deg.update_layout(
+        title="Top 10 Customers by Degree (Jumlah Produk Dibeli)",
+        xaxis_title="Degree (Number of Products)",
+        yaxis_title="Customer ID",
+        height=400
+    )
+    st.plotly_chart(fig_deg, use_container_width=True)
+    
+    ## 2. PATH ANALYTICS
+    st.subheader("2️⃣ Path Analytics - Finding Connections")
+    st.markdown("""
+    **Definisi (dari materi)**: Path adalah walk dengan no repeating nodes. Dalam bipartite graph, path antara dua customers melalui shared products menunjukkan similarity.
+    
+    **Aplikasi Business**: Customer similarity untuk collaborative filtering - jika Customer A dan B membeli produk yang sama, mereka memiliki preferensi serupa.
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        source_cust = st.selectbox("Pilih Customer Source:", customer_nodes, key='source')
+    with col2:
+        target_cust = st.selectbox("Pilih Customer Target:", [c for c in customer_nodes if c != source_cust], key='target')
+    
+    if st.button("🔍 Find Path & Shared Products"):
+        try:
+            # Find shortest path between two customers
+            path = nx.shortest_path(B, source=source_cust, target=target_cust)
+            
+            # Extract shared products (products in the path)
+            shared_products = [node for node in path if node.startswith('P')]
+            
+            st.success(f"✅ Path ditemukan! Length: {len(path)-1} hops")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Path Sequence:**")
+                path_str = " → ".join(path)
+                st.code(path_str)
+                st.caption(f"Path length: {len(path)-1} edges")
+            
+            with col2:
+                st.write("**Shared Products (Common Interest):**")
+                for prod in shared_products:
+                    st.write(f"- {prod}")
+                st.caption(f"Total shared products: {len(shared_products)}")
+            
+            st.info(f"💡 **Insight**: {source_cust} dan {target_cust} memiliki {len(shared_products)} produk yang sama dalam purchase history mereka. Mereka memiliki **preferensi serupa** - cocok untuk collaborative filtering recommendation!")
+            
+        except nx.NetworkXNoPath:
+            st.error(f"❌ Tidak ada path antara {source_cust} dan {target_cust}. Mereka berada di **different connected components**.")
+    
+    ## 3. CONNECTIVITY & DIAMETER
+    st.subheader("3️⃣ Connectivity Analytics - Network Diameter")
+    st.markdown("""
+    **Definisi (dari materi)**: Diameter adalah maximum pairwise distance between nodes. Mengukur seberapa "jauh" node terjauh dalam network.
+    
+    **Aplikasi Business**: Diameter kecil berarti network well-connected - recommendations dapat propagate dengan cepat.
+    """)
+    
+    # Check if graph is connected
+    is_connected = nx.is_connected(B)
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Graph Connected?", "Yes ✅" if is_connected else "No ❌")
+    
+    if is_connected:
+        diameter = nx.diameter(B)
+        avg_shortest_path = nx.average_shortest_path_length(B)
+        col2.metric("Network Diameter", f"{diameter} hops")
+        col3.metric("Avg Shortest Path", f"{avg_shortest_path:.2f} hops")
+        
+        st.write(f"**Interpretasi**: Diameter {diameter} berarti customer terjauh dapat dihubungkan melalui maksimal {diameter} edges. Average shortest path {avg_shortest_path:.2f} menunjukkan network cukup compact untuk collaborative filtering.")
+    else:
+        num_components = nx.number_connected_components(B)
+        col2.metric("Connected Components", f"{num_components}")
+        st.warning(f"⚠️ Graph tidak fully connected. Ada {num_components} separate components - beberapa customers/products isolated.")
+    
+    ## 4. BIPARTITE PROJECTION
+    st.subheader("4️⃣ Network Projection - Customer Similarity Network")
+    st.markdown("""
+    **Definisi**: Bipartite projection converts two-mode network (customers-products) menjadi one-mode network (customers-customers) berdasarkan shared products.
+    
+    **Aplikasi Business**: Customer similarity network untuk **collaborative filtering** - customers terhubung jika membeli produk yang sama.
+    """)
+    
+    # Project to customer-customer network
+    customer_projection = bipartite.weighted_projected_graph(B, customers_set)
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Nodes (Customers)", len(customer_projection.nodes()))
+    col2.metric("Edges (Connections)", len(customer_projection.edges()))
+    col3.metric("Density", f"{nx.density(customer_projection):.4f}")
+    
+    # Calculate degree centrality in projected graph
+    proj_degree = nx.degree_centrality(customer_projection)
+    top_influential = sorted(proj_degree.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    st.write("**Top 10 Most Influential Customers (by connections to other customers)**")
+    df_influential = pd.DataFrame(top_influential, columns=['Customer', 'Centrality Score'])
+    df_influential['Interpretation'] = df_influential['Centrality Score'].apply(
+        lambda x: 'High Influence' if x > 0.5 else ('Medium' if x > 0.3 else 'Low')
+    )
+    st.dataframe(df_influential, hide_index=True, use_container_width=True)
+    st.caption("💡 Customers dengan centrality tinggi adalah **key influencers** - recommendations ke mereka akan spread ke network lebih luas.")
+    
+    ## 5. CLUSTERING COEFFICIENT
+    st.subheader("5️⃣ Community Analytics - Clustering Coefficient")
+    st.markdown("""
+    **Definisi (dari materi)**: Clustering coefficient mengukur degree to which nodes tend to cluster together. 
+    
+    **Aplikasi Business**: High clustering = strong communities of similar customers - target untuk segment-specific campaigns.
+    """)
+    
+    # Calculate clustering for customer projection
+    clustering_coeffs = nx.clustering(customer_projection)
+    avg_clustering = sum(clustering_coeffs.values()) / len(clustering_coeffs)
+    
+    col1, col2 = st.columns(2)
+    col1.metric("Average Clustering Coefficient", f"{avg_clustering:.4f}")
+    col2.metric("Interpretation", "High Clustering ✅" if avg_clustering > 0.3 else "Low Clustering")
+    
+    top_clustered = sorted(clustering_coeffs.items(), key=lambda x: x[1], reverse=True)[:10]
+    df_cluster = pd.DataFrame(top_clustered, columns=['Customer', 'Clustering Coefficient'])
+    
+    st.write("**Top 10 Customers in Dense Clusters**")
+    st.dataframe(df_cluster, hide_index=True, use_container_width=True)
+    st.caption("💡 Customers dengan clustering tinggi berada di **tight-knit communities** - cocok untuk community-based marketing.")
+    
+    ## 6. GRAPH ANALYTICS SUMMARY
+    st.subheader("📊 Graph Analytics Summary")
+    
+    summary_data = {
+        'Metric': [
+            'Total Nodes (V)',
+            'Total Edges (E)',
+            'Graph Type',
+            'Density',
+            'Is Connected',
+            'Diameter (if connected)',
+            'Avg Clustering Coefficient'
+        ],
+        'Value': [
+            len(B.nodes()),
+            len(B.edges()),
+            'Bipartite',
+            f"{nx.density(B):.6f}",
+            "Yes" if is_connected else "No",
+            f"{diameter} hops" if is_connected else "N/A",
+            f"{avg_clustering:.4f}"
+        ],
+        'Business Insight': [
+            f"{len(customers_set)} customers, {len(products_set)} products",
+            "Customer-Product purchase relationships",
+            "Two-mode network: Customers & Products",
+            "Sparse network - typical for e-commerce",
+            "All customers reachable" if is_connected else "Some isolated segments",
+            "Max recommendation propagation distance" if is_connected else "N/A",
+            "High = Strong communities for targeted marketing"
+        ]
+    }
+    
+    df_summary = pd.DataFrame(summary_data)
+    st.dataframe(df_summary, hide_index=True, use_container_width=True)
+    
+    st.success("""
+    **Key Takeaways dari Graph Analytics:**
+    1. **Degree Centrality** → Identifikasi power users dan best-seller products
+    2. **Path Analytics** → Find customer similarities through shared products
+    3. **Connectivity** → Network well-connected untuk recommendation propagation
+    4. **Bipartite Projection** → Customer-customer similarity network untuk collaborative filtering
+    5. **Clustering** → Strong communities untuk segment-specific marketing
+    """)
+
+with tab6:
     st.header("Personalized Recommendations")
     st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan riwayat pembelian mereka dan model hybrid recommendation.")
     
@@ -464,4 +706,4 @@ with tab5:
     """)
 
 st.markdown("---")
-st.markdown("<center style='color:#999; font-size:0.9em;'>H&M Recommendation System | Hybrid Collaborative + Content Analytics</center>", unsafe_allow_html=True)
+st.markdown("<center style='color:#999; font-size:0.9em;'>H&M Recommendation System | Hybrid Collaborative + Content Analytics + Graph Analytics (COMP8025)</center>", unsafe_allow_html=True)
