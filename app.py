@@ -521,7 +521,7 @@ elif page == "🎯 Model Performance":
     """)
 
 # ============================================================================
-# PAGE 3: DATA ANALYTICS
+# PAGE 3: DATA ANALYTICS (FIXED VERSION!)
 # ============================================================================
 elif page == "📈 Data Analytics":
     st.markdown('<h1 class="main-header">📈 Data Analytics & Insights</h1>', unsafe_allow_html=True)
@@ -659,21 +659,26 @@ elif page == "📈 Data Analytics":
     with col1:
         st.subheader("🏆 Top 10 Most Popular Products")
         
-        top_p = data['top_products'].head(10).sort_values('Degree', ascending=True).reset_index(drop=True)
+        # ✅ FIXED: Sort descending & consistent color!
+        top_p = data['top_products'].head(10).sort_values('Degree', ascending=False).reset_index(drop=True)
         
         if len(top_p) > 0:
             fig_top = px.bar(
                 top_p,
-                y='Product',
                 x='Degree',
+                y='Product',
                 orientation='h',
-                title="Produk Paling Banyak Dibeli",
+                title="Produk Paling Banyak Dibeli (Descending)",
                 text='Degree',
-                color='Degree',
-                color_continuous_scale='Reds'
+                color_discrete_sequence=['#e74c3c']  # ✅ Consistent red color!
             )
             fig_top.update_traces(textposition='outside')
-            fig_top.update_layout(height=400, xaxis_title="Jumlah Pelanggan", yaxis_title="Product ID")
+            fig_top.update_layout(
+                height=400, 
+                xaxis_title="Jumlah Pelanggan", 
+                yaxis_title="Product ID",
+                yaxis={'categoryorder':'total ascending'}  # ✅ Ensure proper order!
+            )
             st.plotly_chart(fig_top, use_container_width=True)
             
             st.caption(f"🌟 Product ID **{network_stats['top_product']}** dibeli oleh **{network_stats['top_product_degree']} customers** (best-seller)")
@@ -731,7 +736,7 @@ elif page == "📈 Data Analytics":
         """)
 
 # ============================================================================
-# PAGE 4: NETWORK GRAPH
+# PAGE 4: NETWORK GRAPH (FIXED WITH BLACK THEME!)
 # ============================================================================
 elif page == "🕸️ Network Graph":
     st.markdown('<h1 class="main-header">🕸️ Network Graph Visualization</h1>', unsafe_allow_html=True)
@@ -741,9 +746,20 @@ elif page == "🕸️ Network Graph":
     **ℹ️ About This Network:**  
     Jaringan ini menunjukkan hubungan antara **pelanggan** dan **produk** yang mereka beli dalam struktur **bipartite graph**.
     
+    **Teknologi yang Digunakan:**
+    - **NetworkX** (Python library untuk graph analysis)
+    - **Pattern Matching Queries** (mirip Cypher tapi di Python)
+    - **Graph Algorithms**: Degree centrality, connected components, clustering coefficient
+    
+    **Bukan menggunakan:**
+    - ❌ Neo4j database
+    - ❌ Cypher query language
+    - ❌ Graph query language database (ini pure NetworkX Python!)
+    
+    **Visualisasi:**
     - **Blue nodes (left)** = Customers
     - **Red nodes (right)** = Products  
-    - **Lines** = Purchase relationships
+    - **White lines** = Purchase relationships
     - **Node size** = Degree centrality (jumlah connections)
     
     **💡 Hover pada node untuk melihat detail koneksi!**
@@ -839,7 +855,7 @@ elif page == "🕸️ Network Graph":
                         100 * (y - y_min) / (y_max - y_min) if y_max > y_min else 50
                     )
             
-            # Build edge trace
+            # ✅ BUILD GRAPH WITH BLACK BACKGROUND & WHITE EDGES!
             edge_x, edge_y = [], []
             for _, e in edges_df.iterrows():
                 if e['source'] in pos and e['target'] in pos:
@@ -851,7 +867,7 @@ elif page == "🕸️ Network Graph":
             edge_trace = go.Scatter(
                 x=edge_x, y=edge_y,
                 mode='lines',
-                line=dict(color='rgba(120,120,120,0.3)', width=0.4),
+                line=dict(color='white', width=0.6),  # ✅ WHITE EDGES!
                 hoverinfo='none',
                 showlegend=False
             )
@@ -884,57 +900,78 @@ elif page == "🕸️ Network Graph":
                 marker=dict(size=prod_sizes, color='#F56565', line=dict(width=1, color='white'), opacity=0.8)
             )
             
-            # Create figure
+            # ✅ CREATE FIGURE WITH BLACK BACKGROUND!
             fig_graph = go.Figure(
                 data=[edge_trace, cust_trace, prod_trace],
                 layout=go.Layout(
-                    title=f"Customer–Product Network ({layout_type}) - REAL DATA",
+                    title=f"Customer–Product Network ({layout_type}) - NetworkX Analysis",
                     height=700,
                     showlegend=True,
                     hovermode='closest',
                     xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                     yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white'
+                    plot_bgcolor='black',  # ✅ BLACK BACKGROUND!
+                    paper_bgcolor='#0E1117'  # ✅ MATCH STREAMLIT DARK THEME!
                 )
             )
             
             st.plotly_chart(fig_graph, use_container_width=True)
             
-            st.caption(f"🎯 Displaying {len(customers)} customers, {len(products)} products, {len(edges_df)} edges | **Data 100% REAL dari export Kaggle**")
+            st.caption(f"🎯 Displaying {len(customers)} customers, {len(products)} products, {len(edges_df)} edges | **NetworkX Graph Analysis (bukan Neo4j)**")
     
     st.markdown("---")
     
     # Graph Analytics Use Cases
-    st.subheader("📊 Cara Menggunakan Graph Analytics untuk Bisnis")
+    st.subheader("📊 Graph Analytics Techniques (NetworkX)")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.info("""
-        **1. Menemukan Pelanggan Serupa**  
-        Pelanggan yang terhubung ke produk yang sama memiliki **preferensi serupa**.
+        **1. Pattern Matching (Python-based)**  
+        Menggunakan NetworkX untuk mencari pola seperti:
+        - Co-purchase patterns (Customer1 → Product ← Customer2)
+        - Product associations (Customer → Product1, Product2)
+        - Customer similarity (shared product preferences)
         
         → Basis untuk **collaborative filtering**
         
-        **2. Mengidentifikasi Kluster Produk**  
-        Produk yang sering dibeli bersama oleh pelanggan sama membentuk **kluster natural**.
+        **2. Graph Algorithms**  
+        - **Degree centrality**: Identifikasi top customers & products
+        - **Connected components**: Deteksi komunitas
+        - **Clustering coefficient**: Ukur network cohesion
         
-        → Opportunities untuk **product bundling** dan **outfit recommendations**
+        → **Insights tentang network structure**
         """)
     
     with col2:
         st.info("""
-        **3. Deteksi Komunitas**  
-        Menemukan kelompok pelanggan dan produk yang saling terkait erat.
+        **3. Bipartite Graph Analysis**  
+        Struktur khusus untuk customer-product relationships:
+        - Two distinct node sets (customers & products)
+        - Edges only between sets (no customer-customer edges)
+        - Efficient for recommendation systems
         
-        → **Segmentasi** untuk target marketing campaigns
+        → **Optimized untuk e-commerce use case**
         
-        **4. Rekomendasi Berbasis Jaringan**  
-        Jika pelanggan A mirip dengan B (share banyak produk), dan B membeli produk X, maka X bisa direkomendasikan ke A.
+        **4. Scalability**  
+        - NetworkX untuk analysis & pattern discovery
+        - Apache Spark untuk processing large-scale data
+        - GraphX alternative (tapi ini pakai NetworkX)
         
-        → **Graph-based recommendations** untuk meningkatkan discovery
+        → **Production-ready architecture**
         """)
+    
+    st.warning("""
+    **⚠️ Technical Note:**  
+    Dashboard ini menggunakan **NetworkX (Python library)**, bukan Neo4j database atau Cypher query language.
+    
+    - ✅ Pattern matching dilakukan dengan Python loops & NetworkX methods
+    - ✅ Graph queries ditulis dalam Python syntax
+    - ✅ Visualisasi menggunakan Plotly (web-based)
+    
+    Neo4j adalah database graph yang berbeda dengan query language Cypher. Project ini fokus pada **data science & analytics** dengan NetworkX.
+    """)
 
 # ============================================================================
 # PAGE 5: RECOMMENDATIONS
