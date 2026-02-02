@@ -273,7 +273,7 @@ with tab2:
         st.caption("✓ Model menghasilkan rekomendasi dalam jumlah besar = skalabel untuk operasi H&M")
 
 # ============================================================================
-# TAB 3: DATA ANALYSIS (FIXED - TOP PRODUCTS SORTED & UNIFORM COLOR!)
+# TAB 3: DATA ANALYSIS (FIXED - TOP PRODUCTS DESCENDING!)
 # ============================================================================
 
 with tab3:
@@ -313,7 +313,7 @@ with tab3:
         st.plotly_chart(fig_dist, use_container_width=True)
         st.caption(f"Mean: {dist_data['purchases'].mean():.2f} produk per pelanggan | Median: {dist_data['purchases'].median():.0f} | Max: {dist_data['purchases'].max():.0f} | Power-law distribution (umum di e-commerce)")
     
-    # ✅ FIXED: TOP PRODUCTS - SORTED DESCENDING + UNIFORM COLOR!
+    # ✅ FIXED: TOP PRODUCTS - DESCENDING ORDER (LARGEST AT TOP)!
     st.subheader("Top 10 Most Popular Products")
     top_p = data['top_products'].head(10).sort_values('Degree', ascending=False).reset_index(drop=True)
     if len(top_p) > 0:
@@ -323,13 +323,13 @@ with tab3:
             x='Degree', 
             orientation='h', 
             title="Produk Paling Banyak Dibeli (Descending)",
-            color_discrete_sequence=['#e74c3c']  # ✅ UNIFORM RED COLOR!
+            color_discrete_sequence=['#e74c3c']  # Uniform red color
         )
         fig_top.update_layout(
             height=400, 
             xaxis_title="Jumlah Pelanggan", 
             yaxis_title="Product ID",
-            yaxis={'categoryorder':'total ascending'}  # ✅ ENSURES DESCENDING ORDER!
+            yaxis={'categoryorder':'total descending'}  # ✅ DESCENDING (largest at top)!
         )
         st.plotly_chart(fig_top, use_container_width=True)
     
@@ -382,7 +382,10 @@ with tab4:
 st.markdown("---")
 st.markdown("<center style='color:#999; font-size:0.9em;'>✅ H&M Recommendation System | Hybrid Collaborative + Content Analytics | Data: 100% REAL dari GitHub</center>", unsafe_allow_html=True)
 
-# Sidebar info
+# ============================================================================
+# SIDEBAR INFO
+# ============================================================================
+
 st.sidebar.title("📊 Dataset Info")
 st.sidebar.success("✅ Data loaded from `data/` folder (REAL DATA)")
 st.sidebar.write(f"**Nodes**: {graph_stats['total_nodes']:,}")
