@@ -147,7 +147,7 @@ metrics = {
 # TABS
 # ============================================================================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Ringkasan", "🎯 Performa", "📈 Data", "🔗 Jaringan", "💡 Rekomendasi"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Ringkasan", "🎯 Performa", "📈 Data", "💡 Rekomendasi"])
 
 # ============================================================================
 # TAB 1: RINGKASAN
@@ -273,7 +273,7 @@ with tab2:
         st.caption("✓ Model menghasilkan rekomendasi dalam jumlah besar = skalabel untuk operasi H&M")
 
 # ============================================================================
-# TAB 3: DATA ANALYSIS
+# TAB 3: DATA ANALYSIS (FIXED - TOP PRODUCTS SORTED & UNIFORM COLOR!)
 # ============================================================================
 
 with tab3:
@@ -313,11 +313,24 @@ with tab3:
         st.plotly_chart(fig_dist, use_container_width=True)
         st.caption(f"Mean: {dist_data['purchases'].mean():.2f} produk per pelanggan | Median: {dist_data['purchases'].median():.0f} | Max: {dist_data['purchases'].max():.0f} | Power-law distribution (umum di e-commerce)")
     
+    # ✅ FIXED: TOP PRODUCTS - SORTED DESCENDING + UNIFORM COLOR!
     st.subheader("Top 10 Most Popular Products")
-    top_p = data['top_products'].head(10).sort_values('Degree', ascending=True).reset_index(drop=True)
+    top_p = data['top_products'].head(10).sort_values('Degree', ascending=False).reset_index(drop=True)
     if len(top_p) > 0:
-        fig_top = px.bar(top_p, y='Product', x='Degree', orientation='h', color='Degree', color_continuous_scale='Blues', title="Produk Paling Banyak Dibeli")
-        fig_top.update_layout(height=400, xaxis_title="Jumlah Pelanggan", yaxis_title="")
+        fig_top = px.bar(
+            top_p, 
+            y='Product', 
+            x='Degree', 
+            orientation='h', 
+            title="Produk Paling Banyak Dibeli (Descending)",
+            color_discrete_sequence=['#e74c3c']  # ✅ UNIFORM RED COLOR!
+        )
+        fig_top.update_layout(
+            height=400, 
+            xaxis_title="Jumlah Pelanggan", 
+            yaxis_title="Product ID",
+            yaxis={'categoryorder':'total ascending'}  # ✅ ENSURES DESCENDING ORDER!
+        )
         st.plotly_chart(fig_top, use_container_width=True)
     
     st.subheader("Top 10 Most Active Customers")
@@ -330,123 +343,10 @@ with tab3:
         st.plotly_chart(fig_cust, use_container_width=True)
 
 # ============================================================================
-# TAB 4: NETWORK GRAPH
+# TAB 4: REKOMENDASI
 # ============================================================================
 
 with tab4:
-    st.header("Network Graph Analytics")
-    st.info("Jaringan ini menunjukkan hubungan antara pelanggan dan produk yang mereka beli. Setiap titik biru di kiri adalah pelanggan, setiap titik merah di kanan adalah produk, dan garis menunjukkan pembelian. **Hover pada node untuk melihat koneksi!**")
-    
-    st.subheader("Network Statistics")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Node", f"{graph_stats['total_nodes']:,}")
-    c2.metric("Total Edge", f"{graph_stats['total_edges']:,}")
-    c3.metric("Kepadatan", f"{graph_stats['density']:.6f}")
-    c4.metric("Tipe", "Bipartite")
-    st.caption("Jaringan sparse (kepadatan rendah) adalah tipikal untuk struktur e-commerce bipartite")
-    
-    st.subheader("Customer-Product Network Visualization")
-    
-    nodes_df = data['nodes']
-    edges_df = data['edges']
-    
-    def create_bipartite_graph(nodes_df, edges_df):
-        customers = nodes_df[nodes_df['type'] == 'customer'].copy()
-        products = nodes_df[nodes_df['type'] == 'product'].copy()
-        
-        if len(customers) == 0 or len(products) == 0:
-            st.warning("No customer or product data available")
-            return None
-        
-        pos = {}
-        cust_spacing = 100 / max(len(customers), 1)
-        for i, (_, row) in enumerate(customers.iterrows()):
-            pos[row['id']] = (0, i * cust_spacing)
-        
-        prod_spacing = 100 / max(len(products), 1)
-        for i, (_, row) in enumerate(products.iterrows()):
-            pos[row['id']] = (2, i * prod_spacing)
-        
-        edge_x, edge_y = [], []
-        for _, e in edges_df.iterrows():
-            if e['source'] in pos and e['target'] in pos:
-                x0, y0 = pos[e['source']]
-                x1, y1 = pos[e['target']]
-                edge_x += [x0, x1, None]
-                edge_y += [y0, y1, None]
-        
-        edge_trace = go.Scatter(
-            x=edge_x, y=edge_y,
-            mode='lines',
-            line=dict(color='rgba(120,120,120,0.3)', width=0.4),
-            hoverinfo='none',
-            showlegend=False
-        )
-        
-        cust_x = [pos[id][0] for id in customers['id']]
-        cust_y = [pos[id][1] for id in customers['id']]
-        cust_sizes = [min(d / 3 + 8, 30) for d in customers['degree']]
-        
-        cust_trace = go.Scatter(
-            x=cust_x, y=cust_y,
-            mode='markers',
-            name='Customers',
-            hoverinfo='text',
-            text=[f"Customer: {row['label']}<br>Degree: {row['degree']}" for _, row in customers.iterrows()],
-            marker=dict(size=cust_sizes, color='#4299E1', line=dict(width=1, color='white'), opacity=0.9)
-        )
-        
-        prod_x = [pos[id][0] for id in products['id']]
-        prod_y = [pos[id][1] for id in products['id']]
-        prod_sizes = [min(d / 1.5 + 5, 20) for d in products['degree']]
-        
-        prod_trace = go.Scatter(
-            x=prod_x, y=prod_y,
-            mode='markers',
-            name='Products',
-            hoverinfo='text',
-            text=[f"Product: {row['label']}<br>Degree: {row['degree']}" for _, row in products.iterrows()],
-            marker=dict(size=prod_sizes, color='#F56565', line=dict(width=1, color='white'), opacity=0.8)
-        )
-        
-        fig = go.Figure(
-            data=[edge_trace, cust_trace, prod_trace],
-            layout=go.Layout(
-                title="Customer–Product Bipartite Network (REAL DATA)",
-                height=700,
-                showlegend=True,
-                hovermode='closest',
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                plot_bgcolor='white',
-                paper_bgcolor='white'
-            )
-        )
-        return fig
-    
-    with st.spinner("Rendering network graph..."):
-        fig_graph = create_bipartite_graph(nodes_df, edges_df)
-        if fig_graph is not None:
-            st.plotly_chart(fig_graph, use_container_width=True)
-    
-    st.caption("🎯 Biru (lingkaran) = Pelanggan | Merah (lingkaran) = Produk | **Data 100% REAL dari export Kaggle**")
-    
-    st.subheader("Cara Menggunakan Graph Analytics")
-    st.markdown("""
-    **1. Menemukan Pelanggan Serupa**: Pelanggan yang terhubung ke produk yang sama memiliki preferensi serupa → basis untuk collaborative filtering
-    
-    **2. Mengidentifikasi Kluster Produk**: Produk yang sering dibeli bersama oleh pelanggan sama membentuk kluster → produk bundling opportunities
-    
-    **3. Deteksi Komunitas**: Menemukan kelompok pelanggan dan produk yang saling terkait erat → segmentasi target marketing
-    
-    **4. Rekomendasi Berbasis Jaringan**: Jika pelanggan A mirip dengan B, dan B membeli produk X, maka X bisa direkomendasikan ke A
-    """)
-
-# ============================================================================
-# TAB 5: REKOMENDASI
-# ============================================================================
-
-with tab5:
     st.header("Personalized Recommendations")
     st.info("Lihat rekomendasi produk untuk pelanggan contoh berdasarkan riwayat pembelian mereka dan model hybrid recommendation.")
     
