@@ -21,13 +21,6 @@ st.markdown("# H&M Recommendation System")
 st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
 st.markdown("---")
 
-
-import pandas as pd
-edges = pd.read_csv("data/bipartite_edges.csv")
-print(edges.columns)
-print(edges.head())
-
-
 DATA_DIR = Path("data")
 
 # ============================================================================
@@ -455,7 +448,7 @@ with tab4:
 
     # --- DATA YANG DIBUTUHKAN ---
     sample_recs = data["sample_recs"]  # sudah join dengan article_mapping di load_all_data()
-    edges = load_csv("bipartite_edges.csv")  # history graph customer–product
+    edges = load_csv("bipartite_edges.csv")      # graph customer–product (source, target)
     article_map = load_csv("article_mapping.csv")
 
     # --- PILIH CUSTOMER ---
@@ -516,60 +509,71 @@ with tab4:
     else:
         st.warning("Tidak ada rekomendasi untuk customer ini di sample.")
 
-    # --- HISTORY PEMBELIAN CUSTOMER (DARI GRAPH) ---
+    # --- HISTORY PEMBELIAN CUSTOMER (DARI GRAPH EDGES) ---
     st.subheader("Riwayat Produk yang Pernah Dibeli (sample)")
 
-    # edges.csv di notebook kamu harus punya kolom customer_id & article_id
-    cust_hist = edges[edges["customer_id"] == selected_customer].copy()
-    if len(cust_hist):
-        cust_hist = cust_hist.merge(article_map, how="left", on="article_id")
+    # Di bipartite_edges.csv:
+    # - source  = customer_id
+    # - target  = article_id
+    if "source" in edges.columns and "target" in edges.columns:
+        cust_hist = edges[edges["source"] == selected_customer].copy()
 
-        hist_display = (
-            cust_hist[
-                [
-                    "article_id",
-                    "prod_name",
-                    "product_type_name",
-                    "product_group_name",
+        if len(cust_hist):
+            # samakan nama kolom artikel dengan article_id untuk join ke article_mapping
+            cust_hist = cust_hist.rename(columns={"target": "article_id"})
+            cust_hist = cust_hist.merge(article_map, how="left", on="article_id")
+
+            hist_display = (
+                cust_hist[
+                    [
+                        "article_id",
+                        "prod_name",
+                        "product_type_name",
+                        "product_group_name",
+                    ]
                 ]
-            ]
-            .drop_duplicates()
-            .head(20)
-        )
-
-        st.dataframe(
-            hist_display,
-            use_container_width=True,
-        )
-
-        # highlight category terbanyak di history dan di rekomendasi
-        if "product_group_name" in cust_hist.columns:
-            top_hist_group = (
-                cust_hist["product_group_name"]
-                .value_counts()
-                .head(1)
-                .index[0]
+                .drop_duplicates()
+                .head(20)
             )
+
+            st.dataframe(
+                hist_display,
+                use_container_width=True,
+            )
+
+            # highlight kategori terbanyak di history dan di rekomendasi
+            if "product_group_name" in cust_hist.columns:
+                top_hist_group = (
+                    cust_hist["product_group_name"]
+                    .value_counts()
+                    .head(1)
+                    .index[0]
+                )
+                st.caption(
+                    f"Kategori yang paling sering dibeli (sample graph): "
+                    f"**{top_hist_group}**."
+                )
+
+            if len(cust_recs) and "product_group_name" in cust_recs.columns:
+                top_rec_group = (
+                    cust_recs["product_group_name"]
+                    .value_counts()
+                    .head(1)
+                    .index[0]
+                )
+                st.caption(
+                    f"Kategori yang paling banyak direkomendasikan: "
+                    f"**{top_rec_group}**."
+                )
+        else:
             st.caption(
-                f"Kategori yang paling sering dibeli (berdasarkan sample graph): "
-                f"**{top_hist_group}**."
-            )
-
-        if len(cust_recs) and "product_group_name" in cust_recs.columns:
-            top_rec_group = (
-                cust_recs["product_group_name"]
-                .value_counts()
-                .head(1)
-                .index[0]
-            )
-            st.caption(
-                f"Kategori yang paling banyak direkomendasikan: "
-                f"**{top_rec_group}**."
+                "Belum ada history transaksi di sample graph untuk customer ini "
+                "(atau customer ini tidak termasuk dalam subset network yang diekspor)."
             )
     else:
         st.caption(
-            "Belum ada history transaksi di sample graph untuk customer ini "
-            "(atau tidak termasuk dalam subset network yang diekspor)."
+            "File `bipartite_edges.csv` tidak memiliki kolom `source` dan `target` "
+            "sesuai format yang diharapkan."
         )
 
     st.subheader("Strategi Rekomendasi per Segmen Pelanggan")
@@ -610,5 +614,4 @@ st.markdown(
     "</center>",
     unsafe_allow_html=True,
 )
-
 
