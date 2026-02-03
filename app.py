@@ -21,6 +21,13 @@ st.markdown("# H&M Recommendation System")
 st.markdown("**Hybrid Collaborative Filtering + Content-Based Analytics Dashboard**")
 st.markdown("---")
 
+
+import pandas as pd
+edges = pd.read_csv("data/bipartite_edges.csv")
+print(edges.columns)
+print(edges.head())
+
+
 DATA_DIR = Path("data")
 
 # ============================================================================
@@ -603,4 +610,5 @@ st.markdown(
     "</center>",
     unsafe_allow_html=True,
 )
+
 
