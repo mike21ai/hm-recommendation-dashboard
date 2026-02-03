@@ -385,31 +385,26 @@ with tab3:
     st.subheader("Top 10 Most Popular Products")
     top_p = (
         data["top_products"]
-        .sort_values("Degree", ascending=False)  # urut dari paling populer
         .head(10)
+        .sort_values("Degree", ascending=True)
         .reset_index(drop=True)
     )
     if len(top_p):
-        # tampilkan Product sebagai string supaya tidak diformat 850M, dst.
         top_p["Product_Str"] = top_p["Product"].astype(str)
-
         fig_top = px.bar(
             top_p,
             x="Degree",
-            y="Product_Str",           # <-- PASTIKAN pakai Product_Str
+            y="Product_Str",
             orientation="h",
             title="Produk Paling Banyak Dibeli",
             color_discrete_sequence=["#e74c3c"],
         )
-        # bar terpanjang di atas
         fig_top.update_layout(
             height=400,
             xaxis_title="Jumlah Pelanggan",
             yaxis_title="Product ID",
-            yaxis=dict(autorange="reversed"),
         )
         st.plotly_chart(fig_top, use_container_width=True)
-
 
     st.subheader("Top 10 Most Active Customers")
     top_c = (
@@ -619,6 +614,3 @@ st.markdown(
     "</center>",
     unsafe_allow_html=True,
 )
-
-
-
