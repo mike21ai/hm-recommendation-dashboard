@@ -443,12 +443,15 @@ with tab4:
 
     st.info(
         "Bagian ini menampilkan contoh rekomendasi produk berbasis model ALS "
-        "untuk subset pelanggan. Nama produk diambil dari artikel H&M."
+        "untuk subset pelanggan. Nama produk dan kategori diambil dari data artikel H&M."
     )
 
-    sample_recs = data["sample_recs"]
+    # --- DATA YANG DIBUTUHKAN ---
+    sample_recs = data["sample_recs"]  # sudah join dengan article_mapping di load_all_data()
+    edges = load_csv("bipartite_edges.csv")  # history graph customer–product
+    article_map = load_csv("article_mapping.csv")
 
-    # pilih salah satu customer dari sample
+    # --- PILIH CUSTOMER ---
     unique_customers = sample_recs["customer_id"].unique()
     selected_customer = st.selectbox(
         "Pilih contoh customer",
@@ -456,31 +459,111 @@ with tab4:
         index=0 if len(unique_customers) else None,
     )
 
+    # --- PILIH TOP-N ---
+    top_n = st.slider("Jumlah rekomendasi yang ditampilkan", 5, 30, 10)
+
+    # --- REKOMENDASI UNTUK CUSTOMER TERPILIH ---
     cust_recs = (
         sample_recs[sample_recs["customer_id"] == selected_customer]
         .sort_values("rank")
-        .head(10)
+        .head(top_n)
     )
 
-    st.subheader("Top-N Rekomendasi Produk untuk Customer Terpilih")
+    # Konversi score menjadi label confidence
+    def score_to_band(s):
+        try:
+            s_val = float(s)
+        except Exception:
+            return "Unknown"
+        if s_val >= 10:
+            return "Very High"
+        elif s_val >= 7:
+            return "High"
+        elif s_val >= 4:
+            return "Medium"
+        else:
+            return "Exploratory"
+
     if len(cust_recs):
+        cust_recs_display = cust_recs.copy()
+        cust_recs_display["confidence"] = cust_recs_display["score"].apply(score_to_band)
+
+        st.subheader("Top‑N Rekomendasi Produk untuk Customer Terpilih")
+
         display_cols = []
-        if "rank" in cust_recs.columns:
+        if "rank" in cust_recs_display.columns:
             display_cols.append("rank")
         display_cols.append("article_id")
-        # kolom nama produk dari article_mapping.csv
         for col in ["prod_name", "product_type_name", "product_group_name"]:
-            if col in cust_recs.columns:
+            if col in cust_recs_display.columns:
                 display_cols.append(col)
-        if "score" in cust_recs.columns:
+        if "score" in cust_recs_display.columns:
             display_cols.append("score")
+        if "confidence" in cust_recs_display.columns:
+            display_cols.append("confidence")
 
         st.dataframe(
-            cust_recs[display_cols],
+            cust_recs_display[display_cols],
             use_container_width=True,
         )
     else:
         st.warning("Tidak ada rekomendasi untuk customer ini di sample.")
+
+    # --- HISTORY PEMBELIAN CUSTOMER (DARI GRAPH) ---
+    st.subheader("Riwayat Produk yang Pernah Dibeli (sample)")
+
+    # edges.csv di notebook kamu harus punya kolom customer_id & article_id
+    cust_hist = edges[edges["customer_id"] == selected_customer].copy()
+    if len(cust_hist):
+        cust_hist = cust_hist.merge(article_map, how="left", on="article_id")
+
+        hist_display = (
+            cust_hist[
+                [
+                    "article_id",
+                    "prod_name",
+                    "product_type_name",
+                    "product_group_name",
+                ]
+            ]
+            .drop_duplicates()
+            .head(20)
+        )
+
+        st.dataframe(
+            hist_display,
+            use_container_width=True,
+        )
+
+        # highlight category terbanyak di history dan di rekomendasi
+        if "product_group_name" in cust_hist.columns:
+            top_hist_group = (
+                cust_hist["product_group_name"]
+                .value_counts()
+                .head(1)
+                .index[0]
+            )
+            st.caption(
+                f"Kategori yang paling sering dibeli (berdasarkan sample graph): "
+                f"**{top_hist_group}**."
+            )
+
+        if len(cust_recs) and "product_group_name" in cust_recs.columns:
+            top_rec_group = (
+                cust_recs["product_group_name"]
+                .value_counts()
+                .head(1)
+                .index[0]
+            )
+            st.caption(
+                f"Kategori yang paling banyak direkomendasikan: "
+                f"**{top_rec_group}**."
+            )
+    else:
+        st.caption(
+            "Belum ada history transaksi di sample graph untuk customer ini "
+            "(atau tidak termasuk dalam subset network yang diekspor)."
+        )
 
     st.subheader("Strategi Rekomendasi per Segmen Pelanggan")
     st.markdown(
@@ -492,8 +575,10 @@ with tab4:
         - Gunakan model Hybrid untuk rekomendasi personal berdasarkan histori dan kemiripan produk.  
 
         **Pelanggan Loyal (Power Users)**  
-        - Kombinasikan rekomendasi personal dengan eksplorasi produk baru dan eksklusif."""
+        - Kombinasikan rekomendasi personal dengan eksplorasi produk baru dan eksklusif.
+        """
     )
+
 
 # ============================================================================
 # SIDEBAR & FOOTER
@@ -518,3 +603,4 @@ st.markdown(
     "</center>",
     unsafe_allow_html=True,
 )
+
