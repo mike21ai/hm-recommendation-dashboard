@@ -382,7 +382,7 @@ with tab3:
             f"Max: {dist['purchases'].max():.0f}"
         )
 
-        st.subheader("Top 10 Most Popular Products")
+    st.subheader("Top 10 Most Popular Products")
     top_p = (
         data["top_products"]
         .sort_values("Degree", ascending=False)  # urut dari paling populer
@@ -396,7 +396,7 @@ with tab3:
         fig_top = px.bar(
             top_p,
             x="Degree",
-            y="Product_Str",
+            y="Product_Str",           # <-- PASTIKAN pakai Product_Str
             orientation="h",
             title="Produk Paling Banyak Dibeli",
             color_discrete_sequence=["#e74c3c"],
@@ -409,6 +409,7 @@ with tab3:
             yaxis=dict(autorange="reversed"),
         )
         st.plotly_chart(fig_top, use_container_width=True)
+
 
     st.subheader("Top 10 Most Active Customers")
     top_c = (
@@ -618,5 +619,6 @@ st.markdown(
     "</center>",
     unsafe_allow_html=True,
 )
+
 
 
